@@ -1,0 +1,7 @@
+accelerate==0.27.2
+transformers==4.38.1
+loguru==0.7.0
+tqdm==4.62.3
+torch==2.0.0
+datasets
+click
