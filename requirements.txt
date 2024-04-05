@@ -5,3 +5,5 @@ tqdm==4.62.3
 torch==2.0.0
 datasets
 click
+sentencepiece
+protobuf
