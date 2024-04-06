@@ -1,9 +1,9 @@
-accelerate==0.27.2
-transformers==4.38.1
+torch>=1.13.1
+transformers>=4.37.2
+datasets>=2.14.3
+accelerate>=0.27.2
 loguru==0.7.0
 tqdm==4.62.3
-torch==2.0.0
-datasets
 click
 sentencepiece
 protobuf
