@@ -7,3 +7,6 @@ tqdm==4.62.3
 click
 sentencepiece
 protobuf
+tiktoken
+einops
+transformers_stream_generator
