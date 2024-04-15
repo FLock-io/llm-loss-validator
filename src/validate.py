@@ -93,18 +93,23 @@ def load_sft_dataset(
 )
 @click.option(
     "--assignment_id",
-    required=True,
     type=str,
     help="The id of the validation assignment",
 )
+@click.option("--local_test", is_flag=True, help="Run the script in local test mode to avoid submitting to the server")
 def main(
     model_name_or_path: str,
     template_name: str,
     eval_file: str,
     max_seq_length: int,
     validation_args_file: str,
-    assignment_id: str,
-):
+    assignment_id: str = None,
+    local_test: bool = False,
+):  
+    
+    if not local_test and assignment_id is None:
+        raise ValueError("assignment_id is required for submitting validation result to the server")
+    
     fed_ledger = FedLedger(FLOCK_API_KEY)
     parser = HfArgumentParser(TrainingArguments)
     val_args = parser.parse_json_file(json_file=validation_args_file)[0]
@@ -127,7 +132,9 @@ def main(
     eval_result = trainer.evaluate()
     eval_loss = eval_result["eval_loss"]
     logger.info("evaluate result is %s" % str(eval_result))
-    # report to fed-ledger
+    if local_test:
+        logger.info("The model can be correctly validated by validators.")
+        return
     resp = fed_ledger.submit_validation_result(
         assignment_id=assignment_id,
         loss=eval_loss,
