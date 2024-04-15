@@ -19,6 +19,7 @@ FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
 
+
 def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
     tokenizer = AutoTokenizer.from_pretrained(
         model_name_or_path,
@@ -90,9 +91,20 @@ def load_sft_dataset(
     default="validation_config.json.example",
     help="",
 )
+@click.option(
+    "--assignment_id",
+    required=True,
+    type=str,
+    help="The id of the validation assignment",
+)
 def main(
-    model_name_or_path, template_name, eval_file, max_seq_length, validation_args_file
-):  
+    model_name_or_path: str,
+    template_name: str,
+    eval_file: str,
+    max_seq_length: int,
+    validation_args_file: str,
+    assignment_id: str,
+):
     fed_ledger = FedLedger(FLOCK_API_KEY)
     parser = HfArgumentParser(TrainingArguments)
     val_args = parser.parse_json_file(json_file=validation_args_file)[0]
@@ -113,7 +125,17 @@ def main(
     )
 
     eval_result = trainer.evaluate()
+    eval_loss = eval_result["eval_loss"]
     logger.info("evaluate result is %s" % str(eval_result))
+    # report to fed-ledger
+    resp = fed_ledger.submit_validation_result(
+        assignment_id=assignment_id,
+        loss=eval_loss,
+    )
+    # check response is 200
+    if resp["status"] != 200:
+        logger.error(f"Failed to submit validation result: {resp}")
+        return
 
 
 if __name__ == "__main__":
