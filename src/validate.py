@@ -1,3 +1,4 @@
+import os
 import click
 import torch
 from loguru import logger
@@ -12,7 +13,11 @@ from transformers import (
 from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
+from client.fed_ledger import FedLedger
 
+FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
+if FLOCK_API_KEY is None:
+    raise ValueError("FLOCK_API_KEY is not set")
 
 def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
     tokenizer = AutoTokenizer.from_pretrained(
@@ -87,7 +92,8 @@ def load_sft_dataset(
 )
 def main(
     model_name_or_path, template_name, eval_file, max_seq_length, validation_args_file
-):
+):  
+    fed_ledger = FedLedger(FLOCK_API_KEY)
     parser = HfArgumentParser(TrainingArguments)
     val_args = parser.parse_json_file(json_file=validation_args_file)[0]
 
