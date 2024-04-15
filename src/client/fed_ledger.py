@@ -17,8 +17,8 @@ class FedLedger:
         response = requests.post(url, headers=self.headers)
         return response.json()
 
-    def submit_validation_result(self, task_id: str, loss: float):
-        url = f"{self.url}/tasks/update-validation-assignment/{task_id}"
+    def submit_validation_result(self, assignment_id: str, loss: float):
+        url = f"{self.url}/tasks/update-validation-assignment/{assignment_id}"
         response = requests.post(
             url,
             headers=self.headers,
@@ -31,8 +31,8 @@ class FedLedger:
         )
         return response.json()
 
-    def mark_assignment_as_failed(self, task_id: str):
-        url = f"{self.url}/tasks/update-validation-assignment/{task_id}"
+    def mark_assignment_as_failed(self, assignment_id: str):
+        url = f"{self.url}/tasks/update-validation-assignment/{assignment_id}"
         response = requests.post(
             url,
             headers=self.headers,
@@ -41,5 +41,3 @@ class FedLedger:
             },
         )
         return response.json()
-    
-
