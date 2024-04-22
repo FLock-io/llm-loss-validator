@@ -140,8 +140,8 @@ def main(
         loss=eval_loss,
     )
     # check response is 200
-    if resp["status"] != 200:
-        logger.error(f"Failed to submit validation result: {resp}")
+    if resp.status_code != 200:
+        logger.error(f"Failed to submit validation result: {resp.content}")
         return
 
 
