@@ -43,10 +43,12 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
 
 
 def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
-    # assert val_args.bf16 or val_args.fp16, "bf16 or fp16 should be True"
     # logger.info(f'Loading model from base model: {args.model_name_or_path}')
 
-    torch_dtype = torch.float32 #torch.float16 if val_args.fp16 else torch.bfloat16
+    if val_args.use_cpu:
+        torch_dtype = torch.float32
+    else:
+        torch_dtype = torch.float16 if val_args.fp16 else torch.bfloat16
     model_kwargs = dict(
         trust_remote_code=True,
         torch_dtype=torch_dtype,
