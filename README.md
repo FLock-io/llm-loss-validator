@@ -17,14 +17,26 @@ pip install -r requirements.txt
 
 ```bash
 cd /src
-FLOCK_API_KEY="<your-api-key>" python validate.py --model_name_or_path Qwen/Qwen1.5-1.8B-Chat --template_name qwen --max_seq_length 128 --local_test --validation_args_file validation_config_cpu.json.example
+FLOCK_API_KEY="<your-api-key>" python validate.py \
+--model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
+--template_name qwen \
+--eval_file ./data/dummy_data.jsonl \
+--max_seq_length 128 \
+--local_test \
+--validation_args_file validation_config_cpu.json.example
 ```
 
 ### With GPU
 
 ```bash
 cd /src
-CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py --model_name_or_path Qwen/Qwen1.5-1.8B-Chat --template_name qwen --max_seq_length 128 --local_test --validation_args_file validation_config.json.example
+CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py \
+--model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
+--template_name qwen \
+--eval_file ./data/dummy_data.jsonl \
+--max_seq_length 128 \
+--local_test \
+--validation_args_file validation_config.json.example
 ```
 
 The `--local_test` flag is for both validator and training node to test that whether they can successfully run validation for a given model submission and dataset. It won't interact with the Fed Ledger service.
@@ -32,5 +44,11 @@ The `--local_test` flag is for both validator and training node to test that whe
 To actually calculate and submit the score for a given task assignment. You should use the following command
 
 ```bash
-CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py --model_name_or_path Qwen/Qwen1.5-1.8B-Chat --template_name qwen --max_seq_length 128 --assignment_id <assignment-id> --validation_args_file validation_config.json.example
+CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py \
+--model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
+--template_name qwen \
+--eval_file ./data/dummy_data.jsonl \
+--max_seq_length 128 \
+--assignment_id <assignment-id> \
+--validation_args_file validation_config.json.example
 ```
