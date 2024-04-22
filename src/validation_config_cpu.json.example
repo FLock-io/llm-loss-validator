@@ -1,0 +1,7 @@
+{ 
+    "per_device_eval_batch_size": 2,
+    "fp16": false,
+    "output_dir":".",
+    "remove_unused_columns": false,
+    "use_cpu": true
+}
