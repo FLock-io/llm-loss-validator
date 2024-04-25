@@ -12,6 +12,7 @@ class FedLedger:
             "Content-Type": "application/json",
         }
 
+    # TODO: Failure retry
     def request_validation_assignment(self, task_id: str):
         url = f"{self.url}/tasks/request-validation-assignment/{task_id}"
         response = requests.post(url, headers=self.headers)
