@@ -84,9 +84,9 @@ def load_sft_dataset(
 
 @click.command()
 @click.option("--model_name_or_path", required=True, type=str, help="")
-@click.option("--template_name", required=True, type=str, help="")
+@click.option("--base_model", required=True, type=str, help="")
 @click.option("--eval_file", default="./data/dummy_data.jsonl", type=str, help="")
-@click.option("--max_seq_length", required=True, type=int)
+@click.option("--context_length", required=True, type=int)
 @click.option(
     "--validation_args_file",
     type=str,
@@ -101,9 +101,9 @@ def load_sft_dataset(
 @click.option("--local_test", is_flag=True, help="Run the script in local test mode to avoid submitting to the server")
 def main(
     model_name_or_path: str,
-    template_name: str,
+    base_model: str,
     eval_file: str,
-    max_seq_length: int,
+    context_length: int,
     validation_args_file: str,
     assignment_id: str = None,
     local_test: bool = False,
@@ -118,10 +118,10 @@ def main(
 
     tokenizer = load_tokenizer(model_name_or_path)
     eval_dataset = load_sft_dataset(
-        eval_file, max_seq_length, template_name=template_name, tokenizer=tokenizer
+        eval_file, context_length, template_name=base_model, tokenizer=tokenizer
     )
     model = load_model(model_name_or_path, val_args)
-    data_collator = SFTDataCollator(tokenizer, max_seq_length=max_seq_length)
+    data_collator = SFTDataCollator(tokenizer, max_seq_length=context_length)
 
     trainer = Trainer(
         model=model,
