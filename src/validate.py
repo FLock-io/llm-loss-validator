@@ -119,34 +119,15 @@ def load_sft_dataset(
     return UnifiedSFTDataset(eval_file, tokenizer, max_seq_length, template)
 
 
-@click.command()
-@click.option("--model_name_or_path", required=True, type=str, help="")
-@click.option("--template_name", required=True, type=str, help="")
-@click.option("--eval_file", default="./data/dummy_data.jsonl", type=str, help="")
-@click.option("--max_seq_length", required=True, type=int)
-@click.option(
-    "--validation_args_file",
-    type=str,
-    default="validation_config.json.example",
-    help="",
-)
-@click.option(
-    "--assignment_id",
-    type=str,
-    help="The id of the validation assignment",
-)
-@click.option("--local_test", is_flag=True, help="Run the script in local test mode to avoid submitting to the server")
 def valid(
         model_name_or_path: str,
-        template_name: str,
+        base_model: str,
         eval_file: str,
         max_seq_length: int,
         validation_args_file: str,
         assignment_id: str = None,
         local_test: bool = False,
 ):
-    if not local_test and assignment_id is None:
-        raise ValueError("assignment_id is required for submitting validation result to the server")
 
     fed_ledger = FedLedger(FLOCK_API_KEY)
     parser = HfArgumentParser(TrainingArguments)
@@ -154,7 +135,7 @@ def valid(
 
     tokenizer = load_tokenizer(model_name_or_path)
     eval_dataset = load_sft_dataset(
-        eval_file, max_seq_length, template_name=template_name, tokenizer=tokenizer
+        eval_file, max_seq_length, template_name=base_model, tokenizer=tokenizer
     )
     model = load_model(model_name_or_path, val_args)
     data_collator = SFTDataCollator(tokenizer, max_seq_length=max_seq_length)
@@ -184,7 +165,10 @@ def valid(
 
 
 @click.command()
-@click.option("--max_seq_length", required=True, type=int)
+@click.option("--model_name_or_path", type=str, help="")
+@click.option("--base_model", type=str, help="")
+@click.option("--eval_file", default="./data/dummy_data.jsonl", type=str, help="")
+@click.option("--context_length", type=int, help="")
 @click.option(
     "--validation_args_file",
     type=str,
@@ -196,33 +180,50 @@ def valid(
     type=str,
     help="The id of the task",
 )
+@click.option("--local_test", is_flag=True, help="Run the script in local test mode to avoid submitting to the server")
 def main(
-        max_seq_length: int,
+        model_name_or_path: str,
+        base_model: str,
+        eval_file: str,
+        context_length: int,
         validation_args_file: str,
-        task_id: str,
+        task_id: str = None,
+        local_test: bool = False,
 ):
-    if task_id is None:
-        raise ValueError("task_id is required for asking assignment_id")
-
     fed_ledger = FedLedger(FLOCK_API_KEY)
+    if local_test:
+        if any(x is None for x in (model_name_or_path, base_model, context_length)):
+            raise ValueError("local test need (model_name_or_path, base_model, context_length) parameter")
 
-    while True:
-        resp = fed_ledger.request_validation_assignment(task_id)
-        if resp.status_code != 200:
-            logger.error(f"Failed to ask assignment_id: {resp.content}")
-            time.sleep(TIME_SLEEP)
-            continue
-        eval_file = download_file(resp.content['eval_file_url'])
         valid(
-            model_name_or_path=resp.content['model_name_or_path'],
-            template_name=resp.content['template_name'],
+            model_name_or_path=model_name_or_path,
+            base_model=base_model,
             eval_file=eval_file,
-            max_seq_length=max_seq_length,
+            max_seq_length=context_length,
             validation_args_file=validation_args_file,
-            assignment_id=resp.content['assignment_id'],
-            local_test=False,
+            local_test=True,
         )
-        time.sleep(TIME_SLEEP)
+    else:
+        if task_id is None:
+            raise ValueError("task_id is required for asking assignment_id")
+
+        while True:
+            resp = fed_ledger.request_validation_assignment(task_id)
+            if resp.status_code != 200:
+                logger.error(f"Failed to ask assignment_id: {resp.content}")
+                time.sleep(TIME_SLEEP)
+                continue
+            eval_file = download_file(resp.content['eval_file_url'])
+            valid(
+                model_name_or_path=resp.content['model_name_or_path'],
+                base_model=resp.content['base_model'],
+                eval_file=eval_file,
+                max_seq_length=resp.content['max_seq_length'],
+                validation_args_file=validation_args_file,
+                assignment_id=resp.content['assignment_id'],
+                local_test=False,
+            )
+            time.sleep(TIME_SLEEP)
 
 
 if __name__ == "__main__":
