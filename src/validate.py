@@ -18,6 +18,7 @@ from client.fed_ledger import FedLedger
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
+LOSS_FOR_MODEL_PARAMS_EXCEED = 999.0
 
 
 def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
@@ -87,6 +88,7 @@ def load_sft_dataset(
 @click.option("--base_model", required=True, type=str, help="")
 @click.option("--eval_file", default="./data/dummy_data.jsonl", type=str, help="")
 @click.option("--context_length", required=True, type=int)
+@click.option("--max_params", required=True, type=int)
 @click.option(
     "--validation_args_file",
     type=str,
@@ -104,6 +106,7 @@ def main(
     base_model: str,
     eval_file: str,
     context_length: int,
+    max_params: int,
     validation_args_file: str,
     assignment_id: str = None,
     local_test: bool = False,
@@ -121,6 +124,22 @@ def main(
         eval_file, context_length, template_name=base_model, tokenizer=tokenizer
     )
     model = load_model(model_name_or_path, val_args)
+    # if the number of parameters exceeds the limit, submit a validation result with a large loss
+    total = sum(p.numel() for p in model.parameters())
+    if total > max_params:
+        logger.error(
+            f"Total model params: {total} exceeds the limit {max_params}, submitting validation result with a large loss"
+        )
+        if local_test:
+            return
+        resp = fed_ledger.submit_validation_result(
+            assignment_id=assignment_id,
+            loss=LOSS_FOR_MODEL_PARAMS_EXCEED,
+        )
+        # check response is 200
+        if resp.status_code != 200:
+            logger.error(f"Failed to submit validation result: {resp.content}")
+        return
     data_collator = SFTDataCollator(tokenizer, max_seq_length=context_length)
 
     trainer = Trainer(
