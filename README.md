@@ -22,6 +22,7 @@ FLOCK_API_KEY="<your-api-key>" python validate.py \
 --base_model qwen \
 --eval_file ./data/dummy_data.jsonl \
 --context_length 128 \
+--max_params 7000000000 \
 --local_test \
 --validation_args_file validation_config_cpu.json.example
 ```
@@ -35,6 +36,7 @@ CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py \
 --base_model qwen \
 --eval_file ./data/dummy_data.jsonl \
 --context_length 128 \
+--max_params 7000000000 \
 --local_test \
 --validation_args_file validation_config.json.example
 ```
@@ -46,9 +48,10 @@ To actually calculate and submit the score for a given task assignment. You shou
 ```bash
 CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py \
 --model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
---base_model qwen \
+--base_model qwen1.5 \
 --eval_file ./data/dummy_data.jsonl \
 --context_length 128 \
+--max_params 7000000000 \
 --assignment_id <assignment-id> \
 --validation_args_file validation_config.json.example
 ```
