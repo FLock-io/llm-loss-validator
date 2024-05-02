@@ -218,7 +218,7 @@ def main(
                 model_name_or_path=resp.content['model_name_or_path'],
                 base_model=resp.content['base_model'],
                 eval_file=eval_file,
-                max_seq_length=resp.content['max_seq_length'],
+                context_length =resp.content['context_length'],
                 validation_args_file=validation_args_file,
                 assignment_id=resp.content['assignment_id'],
                 local_test=False,
