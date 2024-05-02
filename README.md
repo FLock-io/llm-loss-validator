@@ -19,7 +19,7 @@ pip install -r requirements.txt
 cd /src
 FLOCK_API_KEY="<your-api-key>" python validate.py \
 --model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
---base_model qwen \
+--base_model qwen1.5 \
 --eval_file ./data/dummy_data.jsonl \
 --context_length 128 \
 --local_test \
@@ -32,7 +32,7 @@ FLOCK_API_KEY="<your-api-key>" python validate.py \
 cd /src
 CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py \
 --model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
---base_model qwen \
+--base_model qwen1.5 \
 --eval_file ./data/dummy_data.jsonl \
 --context_length 128 \
 --local_test \
@@ -46,7 +46,7 @@ To actually calculate and submit the score for a given task assignment. You shou
 ```bash
 CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py \
 --model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
---base_model qwen \
+--base_model qwen1.5 \
 --eval_file ./data/dummy_data.jsonl \
 --context_length 128 \
 --assignment_id <assignment-id> \

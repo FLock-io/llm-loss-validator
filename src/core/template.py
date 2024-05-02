@@ -39,7 +39,7 @@ register_template(
 
 
 register_template(
-    template_name="qwen",
+    template_name="qwen1.5",
     system_format="<|im_start|>system\n{content}<|im_end|>\n",
     user_format="<|im_start|>user\n{content}<|im_end|>\n<|im_start|>assistant\n",
     assistant_format="{content}<|im_end|>\n",
@@ -107,4 +107,13 @@ register_template(
     assistant_format="{content}<eos>\n",
     system="",
     stop_word="<eos>",
+)
+
+register_template(
+    template_name='llama3',
+    system_format='<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{content}<|eot_id|>',
+    user_format='<|start_header_id|>user<|end_header_id|>\n\n{content}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n',
+    assistant_format='{content}<|eot_id|>',
+    system=None,
+    stop_word='<|eot_id|>'
 )

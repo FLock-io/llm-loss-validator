@@ -49,4 +49,10 @@ SUPPORTED_BASE_MODELS = [
     "meta-llama/Llama-2-7b-chat-hf",
     "meta-llama/Llama-2-13b-chat-hf",
     "meta-llama/Llama-2-70b-chat-hf",
+
+    # llama3
+    "meta-llama/Meta-Llama-3-8B",
+    "meta-llama/Meta-Llama-3-8B-Instruct",
+    "meta-llama/Meta-Llama-3-70B",
+    "meta-llama/Meta-Llama-3-70B-Instruct",
 ]
