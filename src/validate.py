@@ -123,7 +123,7 @@ def valid(
         model_name_or_path: str,
         base_model: str,
         eval_file: str,
-        max_seq_length: int,
+        context_length: int,
         validation_args_file: str,
         assignment_id: str = None,
         local_test: bool = False,
@@ -135,10 +135,10 @@ def valid(
 
     tokenizer = load_tokenizer(model_name_or_path)
     eval_dataset = load_sft_dataset(
-        eval_file, max_seq_length, template_name=base_model, tokenizer=tokenizer
+        eval_file, context_length, template_name=base_model, tokenizer=tokenizer
     )
     model = load_model(model_name_or_path, val_args)
-    data_collator = SFTDataCollator(tokenizer, max_seq_length=max_seq_length)
+    data_collator = SFTDataCollator(tokenizer, max_seq_length=context_length)
 
     trainer = Trainer(
         model=model,
@@ -199,7 +199,7 @@ def main(
             model_name_or_path=model_name_or_path,
             base_model=base_model,
             eval_file=eval_file,
-            max_seq_length=context_length,
+            context_length=context_length,
             validation_args_file=validation_args_file,
             local_test=True,
         )
