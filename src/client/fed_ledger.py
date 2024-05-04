@@ -4,7 +4,7 @@ import requests
 class FedLedger:
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = "https://fed-ledger-staging.flock.io/api"
+        self.base_url = "https://fed-ledger-prod.flock.io/api"
         self.api_version = "v1"
         self.url = f"{self.base_url}/{self.api_version}"
         self.headers = {
