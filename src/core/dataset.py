@@ -38,11 +38,13 @@ class UnifiedSFTDataset(Dataset):
                 input_ids = self.tokenizer.encode(system_text, add_special_tokens=False)
                 target_mask = [0] * len(input_ids)
 
-        conversations = data["conversation"]
+        conversations = data["conversations"]
 
-        for i, conv in enumerate(conversations):
-            human = conv["human"].strip()
-            assistant = conv["assistant"].strip()
+        for i in range(0, len(conversations) - 1, 2):
+            if conversations[i]["role"] != "user" or conversations[i + 1]["role"] != "assistant":
+                raise ValueError("The role order of the conversation is not correct")
+            human = conversations[i]["content"].strip()
+            assistant = conversations[i+1]["content"].strip()
 
             human = self.user_format.format(
                 content=human, stop_token=self.tokenizer.eos_token
