@@ -235,16 +235,17 @@ def loop(
             time.sleep(TIME_SLEEP)
             continue
         eval_file = download_file(resp.content['eval_file_url'])
-        validate(
-            model_name_or_path=resp.content['model_name_or_path'],
-            base_model=resp.content['base_model'],
-            eval_file=eval_file,
-            context_length=resp.content['context_length'],
-            max_params=resp.content['max_params'],
-            validation_args_file=validation_args_file,
-            assignment_id=resp.content['assignment_id'],
-            local_test=False,
-        )
+        ctx = click.Context(validate)
+        ctx.invoke(validate,
+                   model_name_or_path=resp.content['model_name_or_path'],
+                   base_model=resp.content['base_model'],
+                   eval_file=eval_file,
+                   context_length=resp.content['context_length'],
+                   max_params=resp.content['max_params'],
+                   validation_args_file=validation_args_file,
+                   assignment_id=resp.content['assignment_id'],
+                   local_test=False,
+                   )
         time.sleep(TIME_SLEEP)
 
 
