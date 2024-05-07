@@ -143,7 +143,7 @@ def cli():
     help="The id of the validation assignment",
 )
 @click.option("--local_test", is_flag=True, help="Run the script in local test mode to avoid submitting to the server")
-def valid(
+def validate(
         model_name_or_path: str,
         base_model: str,
         eval_file: str,
@@ -153,7 +153,6 @@ def valid(
         assignment_id: str = None,
         local_test: bool = False,
 ):
-
     if not local_test and assignment_id is None:
         raise ValueError("assignment_id is required for submitting validation result to the server")
 
@@ -236,18 +235,20 @@ def loop(
             time.sleep(TIME_SLEEP)
             continue
         eval_file = download_file(resp.content['eval_file_url'])
-        valid(
+        validate(
             model_name_or_path=resp.content['model_name_or_path'],
             base_model=resp.content['base_model'],
             eval_file=eval_file,
             context_length=resp.content['context_length'],
+            max_params=resp.content['max_params'],
             validation_args_file=validation_args_file,
             assignment_id=resp.content['assignment_id'],
             local_test=False,
         )
         time.sleep(TIME_SLEEP)
 
-cli.add_command(valid)
+
+cli.add_command(validate)
 cli.add_command(loop)
 
 if __name__ == "__main__":
