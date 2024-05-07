@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN pip3 install -r requirements.txt -i https://pypi.mirrors.ustc.edu.cn/simple/
+RUN pip3 install -r requirements.txt
 
 WORKDIR /app/src
 
