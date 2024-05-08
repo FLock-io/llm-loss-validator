@@ -29,7 +29,11 @@ if FLOCK_API_KEY is None:
 LOSS_FOR_MODEL_PARAMS_EXCEED = 999.0
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10), reraise=True)
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    reraise=True,
+)
 def download_file(url):
     try:
         # Send a GET request to the signed URL
@@ -111,7 +115,7 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
 
 
 def load_sft_dataset(
-        eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
+    eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
 ) -> UnifiedSFTDataset:
     if template_name not in template_dict.keys():
         raise ValueError(
@@ -144,19 +148,25 @@ def cli():
     type=str,
     help="The id of the validation assignment",
 )
-@click.option("--local_test", is_flag=True, help="Run the script in local test mode to avoid submitting to the server")
+@click.option(
+    "--local_test",
+    is_flag=True,
+    help="Run the script in local test mode to avoid submitting to the server",
+)
 def validate(
-        model_name_or_path: str,
-        base_model: str,
-        eval_file: str,
-        context_length: int,
-        max_params: int,
-        validation_args_file: str,
-        assignment_id: str = None,
-        local_test: bool = False,
+    model_name_or_path: str,
+    base_model: str,
+    eval_file: str,
+    context_length: int,
+    max_params: int,
+    validation_args_file: str,
+    assignment_id: str = None,
+    local_test: bool = False,
 ):
     if not local_test and assignment_id is None:
-        raise ValueError("assignment_id is required for submitting validation result to the server")
+        raise ValueError(
+            "assignment_id is required for submitting validation result to the server"
+        )
 
     fed_ledger = FedLedger(FLOCK_API_KEY)
     parser = HfArgumentParser(TrainingArguments)
@@ -221,10 +231,7 @@ def validate(
     type=str,
     help="The id of the task",
 )
-def loop(
-        validation_args_file: str,
-        task_id: str = None
-):
+def loop(validation_args_file: str, task_id: str = None):
     fed_ledger = FedLedger(FLOCK_API_KEY)
 
     if task_id is None:
@@ -236,18 +243,19 @@ def loop(
             logger.error(f"Failed to ask assignment_id: {resp.content}")
             time.sleep(TIME_SLEEP)
             continue
-        eval_file = download_file(resp.content['eval_file_url'])
+        eval_file = download_file(resp.content["eval_file_url"])
         ctx = click.Context(validate)
-        ctx.invoke(validate,
-                   model_name_or_path=resp.content['model_name_or_path'],
-                   base_model=resp.content['base_model'],
-                   eval_file=eval_file,
-                   context_length=resp.content['context_length'],
-                   max_params=resp.content['max_params'],
-                   validation_args_file=validation_args_file,
-                   assignment_id=resp.content['assignment_id'],
-                   local_test=False,
-                   )
+        ctx.invoke(
+            validate,
+            model_name_or_path=resp.content["model_name_or_path"],
+            base_model=resp.content["base_model"],
+            eval_file=eval_file,
+            context_length=resp.content["context_length"],
+            max_params=resp.content["max_params"],
+            validation_args_file=validation_args_file,
+            assignment_id=resp.content["assignment_id"],
+            local_test=False,
+        )
         time.sleep(TIME_SLEEP)
 
 

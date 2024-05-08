@@ -41,10 +41,13 @@ class UnifiedSFTDataset(Dataset):
         conversations = data["conversations"]
 
         for i in range(0, len(conversations) - 1, 2):
-            if conversations[i]["role"] != "user" or conversations[i + 1]["role"] != "assistant":
+            if (
+                conversations[i]["role"] != "user"
+                or conversations[i + 1]["role"] != "assistant"
+            ):
                 raise ValueError("The role order of the conversation is not correct")
             human = conversations[i]["content"].strip()
-            assistant = conversations[i+1]["content"].strip()
+            assistant = conversations[i + 1]["content"].strip()
 
             human = self.user_format.format(
                 content=human, stop_token=self.tokenizer.eos_token
