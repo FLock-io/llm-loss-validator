@@ -1,6 +1,10 @@
 import os
+import time
+
 import click
 import torch
+import requests
+import tempfile
 from loguru import logger
 from transformers import (
     AutoModelForCausalLM,
@@ -10,15 +14,50 @@ from transformers import (
     TrainingArguments,
 )
 
+from dotenv import load_dotenv
 from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
+from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 
+load_dotenv()
+TIME_SLEEP = int(os.getenv("TIME_SLEEP", 10))
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
 LOSS_FOR_MODEL_PARAMS_EXCEED = 999.0
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10), reraise=True)
+def download_file(url):
+    try:
+        # Send a GET request to the signed URL
+        response = requests.get(url, stream=True)
+        # Raise an HTTPError if the HTTP request returned an unsuccessful status code
+        response.raise_for_status()
+
+        # Create a temporary file to save the content
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            # Write the content to the temp file in binary mode
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    temp_file.write(chunk)
+
+            # move the file pointer to the beginning of the file
+            temp_file.flush()
+            temp_file.seek(0)
+
+            # get the file path
+            file_path = temp_file.name
+            logger.info(f"Downloaded the file to {file_path}")
+
+            return file_path
+
+    except requests.exceptions.RequestException as e:
+        # Handle any exception that can be raised by the requests library
+        logger.error(f"An error occurred while downloading the file: {e}")
+        raise e
 
 
 def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
@@ -72,7 +111,7 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
 
 
 def load_sft_dataset(
-    eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
+        eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
 ) -> UnifiedSFTDataset:
     if template_name not in template_dict.keys():
         raise ValueError(
@@ -81,6 +120,11 @@ def load_sft_dataset(
     template = template_dict[template_name]
     logger.info("Loading data with UnifiedSFTDataset")
     return UnifiedSFTDataset(eval_file, tokenizer, max_seq_length, template)
+
+
+@click.group()
+def cli():
+    pass
 
 
 @click.command()
@@ -101,20 +145,19 @@ def load_sft_dataset(
     help="The id of the validation assignment",
 )
 @click.option("--local_test", is_flag=True, help="Run the script in local test mode to avoid submitting to the server")
-def main(
-    model_name_or_path: str,
-    base_model: str,
-    eval_file: str,
-    context_length: int,
-    max_params: int,
-    validation_args_file: str,
-    assignment_id: str = None,
-    local_test: bool = False,
-):  
-    
+def validate(
+        model_name_or_path: str,
+        base_model: str,
+        eval_file: str,
+        context_length: int,
+        max_params: int,
+        validation_args_file: str,
+        assignment_id: str = None,
+        local_test: bool = False,
+):
     if not local_test and assignment_id is None:
         raise ValueError("assignment_id is required for submitting validation result to the server")
-    
+
     fed_ledger = FedLedger(FLOCK_API_KEY)
     parser = HfArgumentParser(TrainingArguments)
     val_args = parser.parse_json_file(json_file=validation_args_file)[0]
@@ -166,5 +209,50 @@ def main(
         return
 
 
+@click.command()
+@click.option(
+    "--validation_args_file",
+    type=str,
+    default="validation_config.json.example",
+    help="",
+)
+@click.option(
+    "--task_id",
+    type=str,
+    help="The id of the task",
+)
+def loop(
+        validation_args_file: str,
+        task_id: str = None
+):
+    fed_ledger = FedLedger(FLOCK_API_KEY)
+
+    if task_id is None:
+        raise ValueError("task_id is required for asking assignment_id")
+
+    while True:
+        resp = fed_ledger.request_validation_assignment(task_id)
+        if resp.status_code != 200:
+            logger.error(f"Failed to ask assignment_id: {resp.content}")
+            time.sleep(TIME_SLEEP)
+            continue
+        eval_file = download_file(resp.content['eval_file_url'])
+        ctx = click.Context(validate)
+        ctx.invoke(validate,
+                   model_name_or_path=resp.content['model_name_or_path'],
+                   base_model=resp.content['base_model'],
+                   eval_file=eval_file,
+                   context_length=resp.content['context_length'],
+                   max_params=resp.content['max_params'],
+                   validation_args_file=validation_args_file,
+                   assignment_id=resp.content['assignment_id'],
+                   local_test=False,
+                   )
+        time.sleep(TIME_SLEEP)
+
+
+cli.add_command(validate)
+cli.add_command(loop)
+
 if __name__ == "__main__":
-    main()
+    cli()
