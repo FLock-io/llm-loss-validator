@@ -11,3 +11,4 @@ tiktoken
 einops
 transformers_stream_generator
 tenacity
+python-dotenv
