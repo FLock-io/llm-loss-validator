@@ -22,7 +22,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 
 load_dotenv()
-TIME_SLEEP = int(os.getenv("TIME_SLEEP"))
+TIME_SLEEP = int(os.getenv("TIME_SLEEP", 10))
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
