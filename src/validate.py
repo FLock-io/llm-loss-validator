@@ -243,19 +243,21 @@ def loop(validation_args_file: str, task_id: str = None):
             logger.error(f"Failed to ask assignment_id: {resp.content}")
             time.sleep(TIME_SLEEP)
             continue
-        eval_file = download_file(resp.content["eval_file_url"])
+        resp = resp.json()
+        eval_file = download_file(resp["data"]["validation_set_url"])
         ctx = click.Context(validate)
         ctx.invoke(
             validate,
-            model_name_or_path=resp.content["model_name_or_path"],
-            base_model=resp.content["base_model"],
+            model_name_or_path=resp["task_submission"]["data"]["hg_repo_id"],
+            base_model=resp["data"]["base_model"],
             eval_file=eval_file,
-            context_length=resp.content["context_length"],
-            max_params=resp.content["max_params"],
+            context_length=resp["data"]["context_length"],
+            max_params=resp["data"]["max_params"],
             validation_args_file=validation_args_file,
-            assignment_id=resp.content["assignment_id"],
+            assignment_id=resp["id"],
             local_test=False,
         )
+        os.remove(eval_file)
         time.sleep(TIME_SLEEP)
 
 
