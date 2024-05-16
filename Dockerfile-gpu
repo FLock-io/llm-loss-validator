@@ -17,4 +17,4 @@ RUN pip3 install -r requirements.txt
 
 WORKDIR /app/src
 
-CMD ["python", "validate.py","loop","--task_id","$task_id","--validation_args_file", "validation_config.json.example"]
+CMD ["sh", "-c", "python validate.py loop --task_id ${task_id} --validation_args_file validation_config.json.example"]
