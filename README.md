@@ -31,7 +31,7 @@ FLOCK_API_KEY="<your-api-key>" python validate.py validate \
 
 ```bash
 cd /src
-CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py validate \
+CUDA_VISIBLE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py validate \
 --model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
 --base_model qwen1.5 \
 --eval_file ./data/dummy_data.jsonl \
@@ -46,7 +46,7 @@ The `--local_test` flag is for both validator and training node to test that whe
 To actually calculate and submit the score for a given task assignment. You should use the following command
 
 ```bash
-CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py validate\
+CUDA_VISIBLE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py validate \
 --model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
 --base_model qwen1.5 \
 --eval_file ./data/dummy_data.jsonl \
@@ -59,7 +59,7 @@ CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py valida
 If you wish to continuously receive task assignments, you should use the following command:
 
 ```bash
-CUDA_VISIBILE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py loop\
+CUDA_VISIBLE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py loop \
 --task_id <task-id> \
 --validation_args_file validation_config.json.example
 ```
