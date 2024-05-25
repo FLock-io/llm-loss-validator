@@ -168,55 +168,61 @@ def validate(
             "assignment_id is required for submitting validation result to the server"
         )
 
-    fed_ledger = FedLedger(FLOCK_API_KEY)
-    parser = HfArgumentParser(TrainingArguments)
-    val_args = parser.parse_json_file(json_file=validation_args_file)[0]
+    try:
+        fed_ledger = FedLedger(FLOCK_API_KEY)
+        parser = HfArgumentParser(TrainingArguments)
+        val_args = parser.parse_json_file(json_file=validation_args_file)[0]
 
-    tokenizer = load_tokenizer(model_name_or_path)
-    eval_dataset = load_sft_dataset(
-        eval_file, context_length, template_name=base_model, tokenizer=tokenizer
-    )
-    model = load_model(model_name_or_path, val_args)
-    # if the number of parameters exceeds the limit, submit a validation result with a large loss
-    total = sum(p.numel() for p in model.parameters())
-    if total > max_params:
-        logger.error(
-            f"Total model params: {total} exceeds the limit {max_params}, submitting validation result with a large loss"
+        tokenizer = load_tokenizer(model_name_or_path)
+        eval_dataset = load_sft_dataset(
+            eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
+        model = load_model(model_name_or_path, val_args)
+        # if the number of parameters exceeds the limit, submit a validation result with a large loss
+        total = sum(p.numel() for p in model.parameters())
+        if total > max_params:
+            logger.error(
+                f"Total model params: {total} exceeds the limit {max_params}, submitting validation result with a large loss"
+            )
+            if local_test:
+                return
+            resp = fed_ledger.submit_validation_result(
+                assignment_id=assignment_id,
+                loss=LOSS_FOR_MODEL_PARAMS_EXCEED,
+            )
+            # check response is 200
+            if resp.status_code != 200:
+                logger.error(f"Failed to submit validation result: {resp.content}")
+            return
+        data_collator = SFTDataCollator(tokenizer, max_seq_length=context_length)
+
+        trainer = Trainer(
+            model=model,
+            args=val_args,
+            eval_dataset=eval_dataset,
+            tokenizer=tokenizer,
+            data_collator=data_collator,
+        )
+
+        eval_result = trainer.evaluate()
+        eval_loss = eval_result["eval_loss"]
+        logger.info("evaluate result is %s" % str(eval_result))
         if local_test:
+            logger.info("The model can be correctly validated by validators.")
             return
         resp = fed_ledger.submit_validation_result(
             assignment_id=assignment_id,
-            loss=LOSS_FOR_MODEL_PARAMS_EXCEED,
+            loss=eval_loss,
         )
         # check response is 200
         if resp.status_code != 200:
             logger.error(f"Failed to submit validation result: {resp.content}")
-        return
-    data_collator = SFTDataCollator(tokenizer, max_seq_length=context_length)
-
-    trainer = Trainer(
-        model=model,
-        args=val_args,
-        eval_dataset=eval_dataset,
-        tokenizer=tokenizer,
-        data_collator=data_collator,
-    )
-
-    eval_result = trainer.evaluate()
-    eval_loss = eval_result["eval_loss"]
-    logger.info("evaluate result is %s" % str(eval_result))
-    if local_test:
-        logger.info("The model can be correctly validated by validators.")
-        return
-    resp = fed_ledger.submit_validation_result(
-        assignment_id=assignment_id,
-        loss=eval_loss,
-    )
-    # check response is 200
-    if resp.status_code != 200:
-        logger.error(f"Failed to submit validation result: {resp.content}")
-        return
+            return
+    except (OSError, RuntimeError) as e:
+        # log the type of the exception
+        logger.error(f"An error occurred while validating the model: {e}")
+        # fail this assignment
+        fed_ledger.mark_assignment_as_failed(assignment_id)
 
 
 @click.command()
