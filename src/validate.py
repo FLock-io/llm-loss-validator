@@ -23,6 +23,8 @@ from client.fed_ledger import FedLedger
 
 load_dotenv()
 TIME_SLEEP = int(os.getenv("TIME_SLEEP", 10))
+use_gpu = os.getenv("use_gpu", "false")
+use_gpu = use_gpu.lower() == 'true'
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
@@ -89,10 +91,10 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
 def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
     # logger.info(f'Loading model from base model: {args.model_name_or_path}')
 
-    if val_args.use_cpu:
-        torch_dtype = torch.float32
-    else:
+    if use_gpu:
         torch_dtype = torch.float16 if val_args.fp16 else torch.bfloat16
+    else:
+        torch_dtype = torch.float32
     model_kwargs = dict(
         trust_remote_code=True,
         torch_dtype=torch_dtype,
