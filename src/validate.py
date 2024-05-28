@@ -22,7 +22,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 
 load_dotenv()
-TIME_SLEEP = int(os.getenv("TIME_SLEEP", 10))
+TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60))
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
@@ -217,12 +217,19 @@ def validate(
         # check response is 200
         if resp.status_code != 200:
             logger.error(f"Failed to submit validation result: {resp.content}")
+            if resp.json() == {"detail": "Validation assignment is not in validating status"}:
+                logger.info("Validation assignment is not in validating status anymore, marking it as failed")
+                fed_ledger.mark_assignment_as_failed(assignment_id)
             return
+        logger.info(f"Successfully submitted validation result for assignment {assignment_id}")
     except (OSError, RuntimeError) as e:
         # log the type of the exception
         logger.error(f"An error occurred while validating the model: {e}")
         # fail this assignment
         fed_ledger.mark_assignment_as_failed(assignment_id)
+    # raise for other exceptions
+    except Exception as e:
+        raise e
 
 
 @click.command()
@@ -247,24 +254,38 @@ def loop(validation_args_file: str, task_id: str = None):
         resp = fed_ledger.request_validation_assignment(task_id)
         if resp.status_code != 200:
             logger.error(f"Failed to ask assignment_id: {resp.content}")
+            logger.info(f"Sleeping for {TIME_SLEEP} seconds")
             time.sleep(TIME_SLEEP)
             continue
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
-        ctx = click.Context(validate)
-        ctx.invoke(
-            validate,
-            model_name_or_path=resp["task_submission"]["data"]["hg_repo_id"],
-            base_model=resp["data"]["base_model"],
-            eval_file=eval_file,
-            context_length=resp["data"]["context_length"],
-            max_params=resp["data"]["max_params"],
-            validation_args_file=validation_args_file,
-            assignment_id=resp["id"],
-            local_test=False,
-        )
+        assignment_id = resp["id"]
+        for attempt in range(3):
+            try:
+                ctx = click.Context(validate)
+                ctx.invoke(
+                    validate,
+                    model_name_or_path=resp["task_submission"]["data"]["hg_repo_id"],
+                    base_model=resp["data"]["base_model"],
+                    eval_file=eval_file,
+                    context_length=resp["data"]["context_length"],
+                    max_params=resp["data"]["max_params"],
+                    validation_args_file=validation_args_file,
+                    assignment_id=resp["id"],
+                    local_test=False,
+                )
+                # if no exception, break the loop
+                break
+            # if keyboard interrupt, break the loop
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1} failed: {e}")
+                # If it's the last attempt, mark the assignment as failed
+                if attempt == 2:
+                    logger.error(f"Marking assignment {assignment_id} as failed after 3 attempts")
+                    fed_ledger.mark_assignment_as_failed(assignment_id)
         os.remove(eval_file)
-        time.sleep(TIME_SLEEP)
 
 
 cli.add_command(validate)
