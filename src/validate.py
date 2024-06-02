@@ -22,7 +22,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 
 load_dotenv()
-TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60))
+TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 10))
+ASSIGNMENT_LOOKUP_INTERVAL = 60 * 5 # 5 minutes
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
@@ -249,14 +250,24 @@ def loop(validation_args_file: str, task_id: str = None):
 
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
-
+    last_successful_request_time = time.time()
     while True:
         resp = fed_ledger.request_validation_assignment(task_id)
         if resp.status_code != 200:
             logger.error(f"Failed to ask assignment_id: {resp.content}")
-            logger.info(f"Sleeping for {TIME_SLEEP} seconds")
-            time.sleep(TIME_SLEEP)
-            continue
+            # handle lookup rate limit
+            if resp.json() == {"detail": "Rate limit reached for validation assignment lookup: 1 per 5 minutes"}:
+                # if not passed, sleep until the next assignment lookup interval
+                if time.time() - last_successful_request_time < ASSIGNMENT_LOOKUP_INTERVAL:
+                    time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (time.time() - last_successful_request_time)
+                    logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
+                    time.sleep(time_to_sleep)
+                continue
+            else:
+                logger.info(f"Sleeping for {TIME_SLEEP} seconds")
+                time.sleep(TIME_SLEEP)
+                continue
+        last_successful_request_time = time.time()
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
         assignment_id = resp["id"]
@@ -286,6 +297,11 @@ def loop(validation_args_file: str, task_id: str = None):
                     logger.error(f"Marking assignment {assignment_id} as failed after 3 attempts")
                     fed_ledger.mark_assignment_as_failed(assignment_id)
         os.remove(eval_file)
+        # sleep to avoid rate limit
+        time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (time.time() - last_successful_request_time)
+        if time_to_sleep > 0:
+            logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
+            time.sleep(time_to_sleep)
 
 
 cli.add_command(validate)
