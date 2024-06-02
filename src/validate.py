@@ -297,6 +297,11 @@ def loop(validation_args_file: str, task_id: str = None):
                     logger.error(f"Marking assignment {assignment_id} as failed after 3 attempts")
                     fed_ledger.mark_assignment_as_failed(assignment_id)
         os.remove(eval_file)
+        # sleep to avoid rate limit
+        time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (time.time() - last_successful_request_time)
+        if time_to_sleep > 0:
+            logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
+            time.sleep(time_to_sleep)
 
 
 cli.add_command(validate)
