@@ -250,30 +250,24 @@ def loop(validation_args_file: str, task_id: str = None):
 
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
-
-    last_rate_limit_hit = None
+    last_successful_request_time = time.time()
     while True:
         resp = fed_ledger.request_validation_assignment(task_id)
         if resp.status_code != 200:
             logger.error(f"Failed to ask assignment_id: {resp.content}")
             # handle lookup rate limit
             if resp.json() == {"detail": "Rate limit reached for validation assignment lookup: 1 per 5 minutes"}:
-                if last_rate_limit_hit is None:
-                    last_rate_limit_hit = time.time()
-                # if has passed the rate limit interval, continue to request and reset the last_rate_limit_hit
-                elif time.time() - last_rate_limit_hit > ASSIGNMENT_LOOKUP_INTERVAL:
-                    last_rate_limit_hit = time.time()
-                # if not, sleep until the next assignment lookup interval
-                else:
-                    # sleep until the next assignment lookup interval
-                    time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (time.time() - last_rate_limit_hit)
-                    logger.info(f"Sleeping for {time_to_sleep} seconds")
+                # if not passed, sleep until the next assignment lookup interval
+                if time.time() - last_successful_request_time < ASSIGNMENT_LOOKUP_INTERVAL:
+                    time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (time.time() - last_successful_request_time)
+                    logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
                     time.sleep(time_to_sleep)
                 continue
             else:
                 logger.info(f"Sleeping for {TIME_SLEEP} seconds")
                 time.sleep(TIME_SLEEP)
                 continue
+        last_successful_request_time = time.time()
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
         assignment_id = resp["id"]
