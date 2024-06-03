@@ -23,7 +23,7 @@ from client.fed_ledger import FedLedger
 
 load_dotenv()
 TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 10))
-ASSIGNMENT_LOOKUP_INTERVAL = 60 * 5 # 5 minutes
+ASSIGNMENT_LOOKUP_INTERVAL = 60 * 5  # 5 minutes
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
@@ -218,11 +218,17 @@ def validate(
         # check response is 200
         if resp.status_code != 200:
             logger.error(f"Failed to submit validation result: {resp.content}")
-            if resp.json() == {"detail": "Validation assignment is not in validating status"}:
-                logger.info("Validation assignment is not in validating status anymore, marking it as failed")
+            if resp.json() == {
+                "detail": "Validation assignment is not in validating status"
+            }:
+                logger.info(
+                    "Validation assignment is not in validating status anymore, marking it as failed"
+                )
                 fed_ledger.mark_assignment_as_failed(assignment_id)
             return
-        logger.info(f"Successfully submitted validation result for assignment {assignment_id}")
+        logger.info(
+            f"Successfully submitted validation result for assignment {assignment_id}"
+        )
     except (OSError, RuntimeError) as e:
         # log the type of the exception
         logger.error(f"An error occurred while validating the model: {e}")
@@ -260,10 +266,17 @@ def loop(validation_args_file: str, task_id: str = None):
         if resp.status_code != 200:
             logger.error(f"Failed to ask assignment_id: {resp.content}")
             # handle lookup rate limit
-            if resp.json() == {"detail": "Rate limit reached for validation assignment lookup: 1 per 5 minutes"}:
+            if resp.json() == {
+                "detail": "Rate limit reached for validation assignment lookup: 1 per 5 minutes"
+            }:
                 # if not passed, sleep until the next assignment lookup interval
-                if time.time() - last_successful_request_time < ASSIGNMENT_LOOKUP_INTERVAL:
-                    time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (time.time() - last_successful_request_time)
+                if (
+                    time.time() - last_successful_request_time
+                    < ASSIGNMENT_LOOKUP_INTERVAL
+                ):
+                    time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (
+                        time.time() - last_successful_request_time
+                    )
                     logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
                     time.sleep(time_to_sleep)
                 continue
@@ -298,11 +311,15 @@ def loop(validation_args_file: str, task_id: str = None):
                 logger.error(f"Attempt {attempt + 1} failed: {e}")
                 # If it's the last attempt, mark the assignment as failed
                 if attempt == 2:
-                    logger.error(f"Marking assignment {assignment_id} as failed after 3 attempts")
+                    logger.error(
+                        f"Marking assignment {assignment_id} as failed after 3 attempts"
+                    )
                     fed_ledger.mark_assignment_as_failed(assignment_id)
         os.remove(eval_file)
         # sleep to avoid rate limit
-        time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (time.time() - last_successful_request_time)
+        time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (
+            time.time() - last_successful_request_time
+        )
         if time_to_sleep > 0:
             logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
             time.sleep(time_to_sleep)
