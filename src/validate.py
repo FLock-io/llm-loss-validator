@@ -231,6 +231,10 @@ def validate(
     # raise for other exceptions
     except Exception as e:
         raise e
+    finally:
+        # offload the model to save memory
+        del model
+        torch.cuda.empty_cache()
 
 
 @click.command()
