@@ -163,7 +163,7 @@ def check_cache_size(folder, max_cache_size):
                     min_model_size = temp_size
         delete_file.append(min_model_path)
         shutil.rmtree(min_model_path)
-        logger.info("delete file and folder as below:", ",".join(delete_file))
+        logger.info("delete file and folder as below: "+",".join(delete_file))
 
         for root, dirs, files in os.walk(folder):
             size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
