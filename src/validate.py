@@ -165,6 +165,7 @@ def check_cache_size(folder, max_cache_size):
         shutil.rmtree(min_model_path)
         logger.info("delete file and folder as below: " + ",".join(delete_file))
 
+        size = 0
         for root, dirs, files in os.walk(folder):
             size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
         size = size / (1024 ** 3)
