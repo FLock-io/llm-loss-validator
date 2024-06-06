@@ -163,12 +163,13 @@ def check_cache_size(folder, max_cache_size):
                     min_model_size = temp_size
         delete_file.append(min_model_path)
         shutil.rmtree(min_model_path)
-        logger.info("delete file and folder as below: "+",".join(delete_file))
+        logger.info("delete file and folder as below: " + ",".join(delete_file))
 
         for root, dirs, files in os.walk(folder):
             size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
         size = size / (1024 ** 3)
         cnt += 1
+
 
 @click.group()
 def cli():
@@ -310,31 +311,40 @@ def loop(
         raise ValueError("task_id is required for asking assignment_id")
     if int(max_cache_size) < 25:
         raise ValueError(" max_cache_size should be greater than 25")
-    last_successful_request_time = time.time()
+    task_id_list = task_id.split(",")
+    last_successful_request_time = [time.time()]*len(task_id_list)
+    resp = None
     while True:
-        resp = fed_ledger.request_validation_assignment(task_id)
-        if resp.status_code != 200:
-            logger.error(f"Failed to ask assignment_id: {resp.content}")
-            # handle lookup rate limit
-            if resp.json() == {
-                "detail": "Rate limit reached for validation assignment lookup: 1 per 5 minutes"
-            }:
-                # if not passed, sleep until the next assignment lookup interval
-                if (
-                    time.time() - last_successful_request_time
-                    < ASSIGNMENT_LOOKUP_INTERVAL
-                ):
-                    time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (
-                        time.time() - last_successful_request_time
-                    )
-                    logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
-                    time.sleep(time_to_sleep)
-                continue
+        for index, task_id_num in enumerate(task_id_list):
+            resp = fed_ledger.request_validation_assignment(task_id_num)
+            if resp.status_code != 200:
+                logger.error(f"Failed to ask assignment_id: {resp.content}")
+                # handle lookup rate limit
+                if resp.json() == {
+                    "detail": "Rate limit reached for validation assignment lookup: 1 per 5 minutes"
+                }:
+                    # if not passed, sleep until the next assignment lookup interval
+                    if (
+                            time.time() - last_successful_request_time[index]
+                            < ASSIGNMENT_LOOKUP_INTERVAL
+                    ):
+                        time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (
+                                time.time() - last_successful_request_time[index]
+                        )
+                        logger.info(f"Sleeping for {int(time_to_sleep / len(task_id_list))} seconds")
+                        time.sleep(time_to_sleep / len(task_id_list))
+                    continue
+                else:
+                    logger.info(f"Sleeping for {TIME_SLEEP} seconds")
+                    time.sleep(TIME_SLEEP / len(task_id_list))
+                    continue
             else:
-                logger.info(f"Sleeping for {TIME_SLEEP} seconds")
-                time.sleep(TIME_SLEEP)
-                continue
-        last_successful_request_time = time.time()
+                last_successful_request_time[index] = time.time()
+                break
+        if resp is None:
+            raise ValueError("task_id format is incorrect")
+        if resp.status_code != 200:
+            continue
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
         assignment_id = resp["id"]
@@ -368,7 +378,7 @@ def loop(
         os.remove(eval_file)
         # sleep to avoid rate limit
         time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (
-            time.time() - last_successful_request_time
+                time.time() - last_successful_request_time
         )
         if time_to_sleep > 0:
             logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
