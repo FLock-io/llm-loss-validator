@@ -378,7 +378,7 @@ def loop(
         os.remove(eval_file)
         # sleep to avoid rate limit
         time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (
-                time.time() - last_successful_request_time
+                time.time() - last_successful_request_time[index]
         )
         if time_to_sleep > 0:
             logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
