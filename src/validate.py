@@ -31,6 +31,9 @@ FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
 LOSS_FOR_MODEL_PARAMS_EXCEED = 999.0
+HF_TOKEN = os.getenv("HF_TOKEN")
+if HF_TOKEN is None:
+    raise ValueError("You need to set HF_TOKEN to download some gated model from HuggingFace")
 
 
 @retry(
@@ -109,7 +112,7 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
         with open("lora/adapter_config.json", "r") as f:
             adapter_config = json.load(f)
         base_model = adapter_config["base_model_name_or_path"]
-        model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
+        model = AutoModelForCausalLM.from_pretrained(base_model, token=HF_TOKEN, **model_kwargs)
         # download the adapter weights
         download_lora_repo(model_name_or_path)
         model = PeftModel.from_pretrained(
@@ -122,7 +125,7 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
     # assuming full fine-tuned model
     else:
         logger.info("Repo is a full fine-tuned model, loading model directly")
-        model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
+        model = AutoModelForCausalLM.from_pretrained(model_name_or_path, token=HF_TOKEN, **model_kwargs)
 
     if "output_router_logits" in model.config.to_dict():
         logger.info("set output_router_logits as True")
