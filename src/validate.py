@@ -26,7 +26,7 @@ from peft import PeftModel
 
 load_dotenv()
 TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 10))
-ASSIGNMENT_LOOKUP_INTERVAL = 60 * 5  # 5 minutes
+ASSIGNMENT_LOOKUP_INTERVAL = 60 * 3  # 3 minutes
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
