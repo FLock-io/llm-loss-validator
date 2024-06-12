@@ -3,11 +3,10 @@ import os
 import time
 
 import click
-import shutil
 import torch
 import requests
 import tempfile
-from dotenv import load_dotenv
+
 from loguru import logger
 
 from transformers import (
@@ -17,7 +16,7 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
-
+from dotenv import load_dotenv
 from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
@@ -26,6 +25,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 from peft import PeftModel
 
+load_dotenv()
 TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 10))
 ASSIGNMENT_LOOKUP_INTERVAL = 60 * 3  # 3 minutes
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
@@ -148,7 +148,7 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
 
 
 def load_sft_dataset(
-        eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
+    eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
 ) -> UnifiedSFTDataset:
     if template_name not in template_dict.keys():
         raise ValueError(
@@ -187,14 +187,14 @@ def cli():
     help="Run the script in local test mode to avoid submitting to the server",
 )
 def validate(
-        model_name_or_path: str,
-        base_model: str,
-        eval_file: str,
-        context_length: int,
-        max_params: int,
-        validation_args_file: str,
-        assignment_id: str = None,
-        local_test: bool = False,
+    model_name_or_path: str,
+    base_model: str,
+    eval_file: str,
+    context_length: int,
+    max_params: int,
+    validation_args_file: str,
+    assignment_id: str = None,
+    local_test: bool = False,
 ):
     if not local_test and assignment_id is None:
         raise ValueError(
