@@ -10,8 +10,6 @@ import tempfile
 from dotenv import load_dotenv
 from loguru import logger
 
-load_dotenv()
-os.environ["HF_HOME"] = os.getenv("HF_HOME")
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -161,48 +159,6 @@ def load_sft_dataset(
     return UnifiedSFTDataset(eval_file, tokenizer, max_seq_length, template)
 
 
-def check_cache_size(folder, max_cache_size):
-    cnt = 0
-    size = 0
-    for root, dirs, files in os.walk(folder):
-        size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
-    size = size / (1024 ** 3)
-    while int(max_cache_size) - size < 25:
-        # if still in dead loop
-        if cnt > 100:
-            raise ValueError("max_cache_size number error")
-        delete_file = []
-        # del tmp file
-        for root, dirs, files in os.walk(folder):
-            for file in files:
-                if "tmp" in file:
-                    os.remove(root + os.sep + file)
-                    delete_file.append(root + os.sep + file)
-
-        # del smallest model
-        min_model_size = float("inf")
-        min_model_path = ""
-        for model_path in next(os.walk(folder + os.sep + "hub"))[1]:
-            if "model" in model_path:
-                temp_size = 0
-                model_path = folder + os.sep + "hub" + os.sep + model_path
-                for root, dirs, files in os.walk(model_path):
-                    temp_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
-                # logger.info("model: ", model_path, "size: ", str(temp_size))
-                if min_model_size > temp_size:
-                    min_model_path = model_path
-                    min_model_size = temp_size
-        delete_file.append(min_model_path)
-        shutil.rmtree(min_model_path)
-        logger.info("delete file and folder as below: " + ",".join(delete_file))
-
-        size = 0
-        for root, dirs, files in os.walk(folder):
-            size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
-        size = size / (1024 ** 3)
-        cnt += 1
-
-
 @click.group()
 def cli():
     pass
@@ -334,18 +290,14 @@ def validate(
     type=str,
     help="The id of the task",
 )
-@click.option("--max_cache_size", type=str, default="100", help="use GB as the unit")
 def loop(
         validation_args_file: str,
-        max_cache_size: str,
         task_id: str = None,
 ):
     fed_ledger = FedLedger(FLOCK_API_KEY)
 
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
-    if int(max_cache_size) < 25:
-        raise ValueError(" max_cache_size should be greater than 25")
     task_id_list = task_id.split(",")
     last_successful_request_time = [time.time()]*len(task_id_list)
     resp = None
