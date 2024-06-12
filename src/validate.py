@@ -321,7 +321,7 @@ def loop(
                         time.sleep(time_to_sleep / len(task_id_list))
                     continue
                 else:
-                    logger.info(f"Sleeping for {TIME_SLEEP} seconds")
+                    logger.info(f"Sleeping for {int(TIME_SLEEP / len(task_id_list))} seconds")
                     time.sleep(TIME_SLEEP / len(task_id_list))
                     continue
             else:
