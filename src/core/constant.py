@@ -14,6 +14,15 @@ SUPPORTED_BASE_MODELS = [
     "Qwen/Qwen1.5-32B-Chat",
     "Qwen/Qwen1.5-72B",
     "Qwen/Qwen1.5-72B-Chat",
+    # qwen2
+    "Qwen/Qwen2-0.5B",
+    "Qwen/Qwen2-0.5B-Instruct",
+    "Qwen/Qwen2-1.5B",
+    "Qwen/Qwen2-1.5B-Instruct",
+    "Qwen/Qwen2-7B",
+    "Qwen/Qwen2-7B-Instruct",
+    "Qwen/Qwen2-72B",
+    "Qwen/Qwen2-72B-Instruct",
     # Yi
     "01-ai/Yi-6B",
     "01-ai/Yi-6B-Chat",
@@ -21,10 +30,19 @@ SUPPORTED_BASE_MODELS = [
     "01-ai/Yi-9B-Chat",
     "01-ai/Yi-34B",
     "01-ai/Yi-34B-Chat",
+    # yi 1.5
+    "01-ai/Yi-1.5-6B",
+    "01-ai/Yi-1.5-6B-Chat",
+    "01-ai/Yi-1.5-9B",
+    "01-ai/Yi-1.5-9B-Chat",
+    "01-ai/Yi-1.5-34B",
+    "01-ai/Yi-1.5-34B-Chat",
     # mistral
     "mistralai/Mistral-7B-v0.1",
+    "mistralai/Mistral-7B-v0.3",
     "mistralai/Mistral-7B-Instruct-v0.1",
     "mistralai/Mistral-7B-Instruct-v0.2",
+    "mistralai/Mistral-7B-Instruct-v0.3",
     # mixtral
     "mistralai/Mixtral-8x7B-v0.1",
     "mistralai/Mixtral-8x7B-Instruct-v0.1",

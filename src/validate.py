@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -22,15 +23,22 @@ from transformers import (
 from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
+from core.hf_utils import download_lora_config, download_lora_repo
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
+from peft import PeftModel
 
 TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 10))
-ASSIGNMENT_LOOKUP_INTERVAL = 60 * 5  # 5 minutes
+ASSIGNMENT_LOOKUP_INTERVAL = 60 * 3  # 3 minutes
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
 LOSS_FOR_MODEL_PARAMS_EXCEED = 999.0
+HF_TOKEN = os.getenv("HF_TOKEN")
+if HF_TOKEN is None:
+    raise ValueError(
+        "You need to set HF_TOKEN to download some gated model from HuggingFace"
+    )
 
 
 @retry(
@@ -103,7 +111,30 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
         use_cache=False,
         device_map=None,
     )
-    model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
+    # check whether it is a lora weight
+    if download_lora_config(model_name_or_path):
+        logger.info("Repo is a lora weight, loading model with adapter weights")
+        with open("lora/adapter_config.json", "r") as f:
+            adapter_config = json.load(f)
+        base_model = adapter_config["base_model_name_or_path"]
+        model = AutoModelForCausalLM.from_pretrained(
+            base_model, token=HF_TOKEN, **model_kwargs
+        )
+        # download the adapter weights
+        download_lora_repo(model_name_or_path)
+        model = PeftModel.from_pretrained(
+            model,
+            "lora",
+            device_map=None,
+        )
+        model = model.merge_and_unload()
+        logger.info("Loaded model with adapter weights")
+    # assuming full fine-tuned model
+    else:
+        logger.info("Repo is a full fine-tuned model, loading model directly")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name_or_path, token=HF_TOKEN, **model_kwargs
+        )
 
     if "output_router_logits" in model.config.to_dict():
         logger.info("set output_router_logits as True")
@@ -286,6 +317,9 @@ def validate(
         # offload the model to save memory
         del model
         torch.cuda.empty_cache()
+        # remove lora folder
+        if os.path.exists("lora"):
+            os.system("rm -rf lora")
 
 
 @click.command()
