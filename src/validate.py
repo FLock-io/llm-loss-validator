@@ -289,51 +289,48 @@ def validate(
     type=str,
     help="The id of the task",
 )
-def loop(
-        validation_args_file: str,
-        task_id: str = None,
-):
-    fed_ledger = FedLedger(FLOCK_API_KEY)
-
+def loop(validation_args_file: str, task_id: str = None):
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
+
+    fed_ledger = FedLedger(FLOCK_API_KEY)
     task_id_list = task_id.split(",")
-    last_successful_request_time = [time.time()]*len(task_id_list)
-    resp = None
+    logger.info(f"Validating task_id: {task_id_list}")
+    last_successful_request_time = [time.time()] * len(task_id_list)
+
     while True:
         for index, task_id_num in enumerate(task_id_list):
             resp = fed_ledger.request_validation_assignment(task_id_num)
-            if resp.status_code != 200:
-                logger.error(f"Failed to ask assignment_id: {resp.content}")
-                # handle lookup rate limit
-                if resp.json() == {
-                    "detail": "Rate limit reached for validation assignment lookup: 1 per 5 minutes"
-                }:
-                    # if not passed, sleep until the next assignment lookup interval
-                    if (
-                            time.time() - last_successful_request_time[index]
-                            < ASSIGNMENT_LOOKUP_INTERVAL
-                    ):
-                        time_to_sleep = ASSIGNMENT_LOOKUP_INTERVAL - (
-                                time.time() - last_successful_request_time[index]
-                        )
-                        logger.info(f"Sleeping for {int(time_to_sleep / len(task_id_list))} seconds")
-                        time.sleep(time_to_sleep / len(task_id_list))
-                    continue
-                else:
-                    logger.info(f"Sleeping for {int(TIME_SLEEP / len(task_id_list))} seconds")
-                    time.sleep(TIME_SLEEP / len(task_id_list))
-                    continue
-            else:
+            if resp.status_code == 200:
                 last_successful_request_time[index] = time.time()
                 break
-        if resp is None:
-            raise ValueError("task_id format is incorrect")
-        if resp.status_code != 200:
+            else:
+                logger.error(f"Failed to ask assignment_id: {resp.content}")
+                if resp.json() == {
+                    "detail": "Rate limit reached for validation assignment lookup: 1 per 3 minutes"
+                }:
+                    time_since_last_success = (
+                        time.time() - last_successful_request_time[index]
+                    )
+                    if time_since_last_success < ASSIGNMENT_LOOKUP_INTERVAL:
+                        time_to_sleep = (
+                            ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
+                        )
+                        logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
+                        time.sleep(time_to_sleep)
+                    continue
+                else:
+                    logger.info(f"Sleeping for {int(TIME_SLEEP)} seconds")
+                    time.sleep(TIME_SLEEP)
+                    continue
+
+        if resp is None or resp.status_code != 200:
             continue
+
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
         assignment_id = resp["id"]
+
         for attempt in range(3):
             try:
                 ctx = click.Context(validate)
@@ -348,19 +345,17 @@ def loop(
                     assignment_id=resp["id"],
                     local_test=False,
                 )
-                # if no exception, break the loop
-                break
-            # if keyboard interrupt, break the loop
+                break  # Break the loop if no exception
             except KeyboardInterrupt:
                 break
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1} failed: {e}")
-                # If it's the last attempt, mark the assignment as failed
                 if attempt == 2:
                     logger.error(
                         f"Marking assignment {assignment_id} as failed after 3 attempts"
                     )
                     fed_ledger.mark_assignment_as_failed(assignment_id)
+
         os.remove(eval_file)
 
 
