@@ -1,7 +1,7 @@
 import json
 import os
 import time
-
+import re
 import click
 import torch
 import requests
@@ -36,7 +36,32 @@ if HF_TOKEN is None:
     raise ValueError(
         "You need to set HF_TOKEN to download some gated model from HuggingFace"
     )
+try:
+    HF_HOME = os.getenv("HF_HOME")
+    if HF_HOME is None:
+        parent_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+        HF_HOME = os.path.join(parent_dir, 'cache')
+        # 检查并创建 cache 文件夹
+        if not os.path.exists(HF_HOME):
+            os.makedirs(HF_HOME)
+            logger.info(f"Cache directory created at: {HF_HOME}")
+        os.environ["HF_HOME"] = HF_HOME
+        logger.info(f"HF_HOME is not set. Using default path: {HF_HOME}")
+    else:
+        logger.info(f"Model storage at {HF_HOME}")
+except Exception as e:
+    logger.error(f'Error occurred while reading or setting HF_HOME: {e}')
+def get_folders_with_numeric_suffix(root_dir):
+    numeric_suffix_pattern = re.compile(r'.*\d$')
+    matching_folders = []
 
+    for entry in os.listdir(root_dir):
+        full_path = os.path.join(root_dir, entry)
+        if os.path.isdir(full_path):
+            if numeric_suffix_pattern.match(entry):
+                matching_folders.append(full_path)
+    
+    return matching_folders
 
 @retry(
     stop=stop_after_attempt(3),
@@ -277,6 +302,16 @@ def validate(
             os.system("rm -rf lora")
 
 
+            print(f"Successfully cleared all files in lora")
+
+
+        if HF_HOME:
+            folders_with_numeric_suffix = get_folders_with_numeric_suffix(HF_HOME)
+            for folder in folders_with_numeric_suffix:
+                # not remove base model
+                os.system(f"rm -rf {folder}")
+                print(f'remove {folder} success')
+
 @click.command()
 @click.option(
     "--validation_args_file",
@@ -290,14 +325,11 @@ def validate(
     help="The id of the task",
 )
 def loop(validation_args_file: str, task_id: str = None):
+    fed_ledger = FedLedger(FLOCK_API_KEY)
+
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
-
-    fed_ledger = FedLedger(FLOCK_API_KEY)
-    task_id_list = task_id.split(",")
-    logger.info(f"Validating task_id: {task_id_list}")
-    last_successful_request_time = [time.time()] * len(task_id_list)
-
+    last_successful_request_time = time.time()
     while True:
         for index, task_id_num in enumerate(task_id_list):
             resp = fed_ledger.request_validation_assignment(task_id_num)
@@ -330,7 +362,6 @@ def loop(validation_args_file: str, task_id: str = None):
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
         assignment_id = resp["id"]
-
         for attempt in range(3):
             try:
                 ctx = click.Context(validate)
