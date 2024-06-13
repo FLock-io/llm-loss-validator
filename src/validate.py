@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import shutil
 
 import click
 import torch
@@ -13,6 +14,7 @@ from transformers import (
     HfArgumentParser,
     Trainer,
     TrainingArguments,
+    file_utils,
 )
 
 from dotenv import load_dotenv
@@ -20,6 +22,7 @@ from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
 from core.hf_utils import download_lora_config, download_lora_repo
+from core.constant import SUPPORTED_BASE_MODELS
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 from peft import PeftModel
@@ -299,6 +302,11 @@ def loop(validation_args_file: str, task_id: str = None):
     last_successful_request_time = [time.time()] * len(task_id_list)
 
     while True:
+        for root, dirs, _ in os.walk(file_utils.default_cache_path):
+            for dir in dirs:
+                if dir.startswith("models") and dir not in [f"models--{BASE_MODEL.replace('/', '--')}" for BASE_MODEL in SUPPORTED_BASE_MODELS]:
+                    shutil.rmtree(os.path.join(root, dir))
+        
         for index, task_id_num in enumerate(task_id_list):
             resp = fed_ledger.request_validation_assignment(task_id_num)
             if resp.status_code == 200:
