@@ -2,6 +2,7 @@ import json
 import os
 import time
 
+import git
 import click
 import torch
 import requests
@@ -15,6 +16,7 @@ from transformers import (
     TrainingArguments,
 )
 
+from pathlib import Path
 from dotenv import load_dotenv
 from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
@@ -145,6 +147,23 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
 
     return model
 
+def is_latest_version(repo_path):
+    try:
+        repo = git.Repo(repo_path)
+        origin = repo.remotes.origin
+        origin.fetch()
+
+        local_commit = repo.commit('main')
+        remote_commit = repo.commit('origin/main')
+
+        if local_commit.hexsha != remote_commit.hexsha:
+            logger.error("The local code is not up to date with the main branch.Pls update your version")
+            raise
+    except git.exc.InvalidGitRepositoryError:
+        logger.error("This is not a git repository.")
+        raise
+    except Exception:
+        raise
 
 def load_sft_dataset(
     eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
@@ -292,6 +311,9 @@ def validate(
 def loop(validation_args_file: str, task_id: str = None):
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
+
+    repo_path = Path(__file__).resolve().parent.parent
+    is_latest_version(repo_path)
 
     fed_ledger = FedLedger(FLOCK_API_KEY)
     task_id_list = task_id.split(",")
