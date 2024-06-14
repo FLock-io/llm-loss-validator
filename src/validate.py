@@ -161,6 +161,20 @@ def load_sft_dataset(
     return UnifiedSFTDataset(eval_file, tokenizer, max_seq_length, template)
 
 
+def clean_model_cache(auto_clean_cache: bool, cache_path: str = file_utils.default_cache_path):
+    if auto_clean_cache:
+        try:
+            for root, dirs, _ in os.walk(cache_path):
+                for dir in dirs:
+                    if dir.startswith("models") and dir not in [
+                        f"models--{BASE_MODEL.replace('/', '--')}" for BASE_MODEL in SUPPORTED_BASE_MODELS
+                    ]:
+                        shutil.rmtree(os.path.join(root, dir))
+            logger.info("Successfully cleaned up the local model cache")
+        except Exception as e:
+            logger.error(f"Failed to clean up the local model cache: {e}")
+
+
 @click.group()
 def cli():
     pass
@@ -292,7 +306,13 @@ def validate(
     type=str,
     help="The id of the task",
 )
-def loop(validation_args_file: str, task_id: str = None):
+@click.option(
+    "--auto_clean_cache",
+    type=bool,
+    default=True,
+    help="Auto clean the model cache except for the base model",
+)
+def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool = True):
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
 
@@ -302,11 +322,8 @@ def loop(validation_args_file: str, task_id: str = None):
     last_successful_request_time = [time.time()] * len(task_id_list)
 
     while True:
-        for root, dirs, _ in os.walk(file_utils.default_cache_path):
-            for dir in dirs:
-                if dir.startswith("models") and dir not in [f"models--{BASE_MODEL.replace('/', '--')}" for BASE_MODEL in SUPPORTED_BASE_MODELS]:
-                    shutil.rmtree(os.path.join(root, dir))
-        
+        clean_model_cache(auto_clean_cache)
+
         for index, task_id_num in enumerate(task_id_list):
             resp = fed_ledger.request_validation_assignment(task_id_num)
             if resp.status_code == 200:
