@@ -7,13 +7,13 @@ on:
   release:
     types: [published]
 
-# Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
+# Defines three custom environment variables for the workflow. These are used for the Container registry domain, and a name + version for the Docker image that this workflow builds.
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   VERSION: ${{ github.sha }}
 
-# There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
+# There are two joba in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
   build-and-push-image-normal:
     runs-on: ubuntu-latest
