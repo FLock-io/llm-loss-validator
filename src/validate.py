@@ -1,7 +1,7 @@
 import json
 import os
 import time
-
+import gc
 import click
 import torch
 import requests
@@ -270,7 +270,9 @@ def validate(
         raise e
     finally:
         # offload the model to save memory
-        del model
+        gc.collect()
+        model.cpu()
+        del model, eval_dataset
         torch.cuda.empty_cache()
         # remove lora folder
         if os.path.exists("lora"):
