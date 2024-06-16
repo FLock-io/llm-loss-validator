@@ -18,6 +18,7 @@ from transformers import (
 )
 
 from dotenv import load_dotenv
+from pathlib import Path
 from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
@@ -162,17 +163,29 @@ def load_sft_dataset(
 
 
 def clean_model_cache(auto_clean_cache: bool, cache_path: str = file_utils.default_cache_path):
-    if auto_clean_cache:
-        try:
-            for root, dirs, _ in os.walk(cache_path):
-                for dir in dirs:
-                    if dir.startswith("models") and dir not in [
-                        f"models--{BASE_MODEL.replace('/', '--')}" for BASE_MODEL in SUPPORTED_BASE_MODELS
-                    ]:
-                        shutil.rmtree(os.path.join(root, dir))
-            logger.info("Successfully cleaned up the local model cache")
-        except Exception as e:
-            logger.error(f"Failed to clean up the local model cache: {e}")
+    """
+    Cleans up the local model cache directory by removing directories that are not
+    listed in SUPPORTED_BASE_MODELS.
+
+    Parameters:
+    - auto_clean_cache (bool): A flag to determine whether to clean the cache.
+    - cache_path (str): The path to the cache directory. Defaults to file_utils.default_cache_path.
+    """
+    if not auto_clean_cache:
+        return
+
+    try:
+        cache_path = Path(cache_path)
+        for item in cache_path.iterdir():
+            if item.is_dir() and item.name.startswith("models"):
+                if item.name not in {
+                    f"models--{BASE_MODEL.replace('/', '--')}" for BASE_MODEL in SUPPORTED_BASE_MODELS
+                }:
+                    shutil.rmtree(item)
+                    logger.info(f"Removed directory: {item}")
+        logger.info("Successfully cleaned up the local model cache")
+    except (OSError, shutil.Error) as e:
+        logger.error(f"Failed to clean up the local model cache: {e}")
 
 
 @click.group()
