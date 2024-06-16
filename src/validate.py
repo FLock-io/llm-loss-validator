@@ -1,6 +1,8 @@
 import json
 import os
 import time
+import shutil
+
 import gc
 import click
 import torch
@@ -13,13 +15,16 @@ from transformers import (
     HfArgumentParser,
     Trainer,
     TrainingArguments,
+    file_utils,
 )
 
 from dotenv import load_dotenv
+from pathlib import Path
 from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
 from core.hf_utils import download_lora_config, download_lora_repo
+from core.constant import SUPPORTED_BASE_MODELS
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 from peft import PeftModel
@@ -158,6 +163,32 @@ def load_sft_dataset(
     return UnifiedSFTDataset(eval_file, tokenizer, max_seq_length, template)
 
 
+def clean_model_cache(auto_clean_cache: bool, cache_path: str = file_utils.default_cache_path):
+    """
+    Cleans up the local model cache directory by removing directories that are not
+    listed in SUPPORTED_BASE_MODELS.
+
+    Parameters:
+    - auto_clean_cache (bool): A flag to determine whether to clean the cache.
+    - cache_path (str): The path to the cache directory. Defaults to file_utils.default_cache_path.
+    """
+    if not auto_clean_cache:
+        return
+
+    try:
+        cache_path = Path(cache_path)
+        for item in cache_path.iterdir():
+            if item.is_dir() and item.name.startswith("models"):
+                if item.name not in {
+                    f"models--{BASE_MODEL.replace('/', '--')}" for BASE_MODEL in SUPPORTED_BASE_MODELS
+                }:
+                    shutil.rmtree(item)
+                    logger.info(f"Removed directory: {item}")
+        logger.info("Successfully cleaned up the local model cache")
+    except (OSError, shutil.Error) as e:
+        logger.error(f"Failed to clean up the local model cache: {e}")
+
+
 @click.group()
 def cli():
     pass
@@ -291,7 +322,13 @@ def validate(
     type=str,
     help="The id of the task",
 )
-def loop(validation_args_file: str, task_id: str = None):
+@click.option(
+    "--auto_clean_cache",
+    type=bool,
+    default=True,
+    help="Auto clean the model cache except for the base model",
+)
+def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool = True):
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
 
@@ -301,6 +338,8 @@ def loop(validation_args_file: str, task_id: str = None):
     last_successful_request_time = [time.time()] * len(task_id_list)
 
     while True:
+        clean_model_cache(auto_clean_cache)
+
         for index, task_id_num in enumerate(task_id_list):
             resp = fed_ledger.request_validation_assignment(task_id_num)
             if resp.status_code == 200:
