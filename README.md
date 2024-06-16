@@ -61,5 +61,6 @@ If you wish to continuously receive task assignments, you should use the followi
 ```bash
 CUDA_VISIBLE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" HF_TOKEN="your-hf-token-to-access-gated-based-models" python validate.py loop \
 --task_id <list-of-task-ids> \ # For example: "2,3" OR "2"
---validation_args_file validation_config.json.example
+--validation_args_file validation_config.json.example \
+--auto_clean_cache False # whether to automatically clean up non base models cache
 ```

@@ -163,7 +163,9 @@ def load_sft_dataset(
     return UnifiedSFTDataset(eval_file, tokenizer, max_seq_length, template)
 
 
-def clean_model_cache(auto_clean_cache: bool, cache_path: str = file_utils.default_cache_path):
+def clean_model_cache(
+    auto_clean_cache: bool, cache_path: str = file_utils.default_cache_path
+):
     """
     Cleans up the local model cache directory by removing directories that are not
     listed in SUPPORTED_BASE_MODELS.
@@ -180,7 +182,8 @@ def clean_model_cache(auto_clean_cache: bool, cache_path: str = file_utils.defau
         for item in cache_path.iterdir():
             if item.is_dir() and item.name.startswith("models"):
                 if item.name not in {
-                    f"models--{BASE_MODEL.replace('/', '--')}" for BASE_MODEL in SUPPORTED_BASE_MODELS
+                    f"models--{BASE_MODEL.replace('/', '--')}"
+                    for BASE_MODEL in SUPPORTED_BASE_MODELS
                 }:
                     shutil.rmtree(item)
                     logger.info(f"Removed directory: {item}")
@@ -331,6 +334,10 @@ def validate(
 def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool = True):
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
+    if auto_clean_cache:
+        logger.info("Auto clean the model cache except for the base model")
+    else:
+        logger.info("Skip auto clean the model cache")
 
     fed_ledger = FedLedger(FLOCK_API_KEY)
     task_id_list = task_id.split(",")
