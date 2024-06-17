@@ -344,73 +344,70 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
     task_id_list = task_id.split(",")
     logger.info(f"Validating task_id: {task_id_list}")
     last_successful_request_time = [time.time()] * len(task_id_list)
-    try:
-        while True:
-            clean_model_cache(auto_clean_cache)
+    while True:
+        clean_model_cache(auto_clean_cache)
 
-            for index, task_id_num in enumerate(task_id_list):
-                resp = fed_ledger.request_validation_assignment(task_id_num)
-                if resp.status_code == 200:
-                    last_successful_request_time[index] = time.time()
-                    break
-                else:
-                    logger.error(f"Failed to ask assignment_id: {resp.content}")
-                    if resp.json() == {
-                        "detail": "Rate limit reached for validation assignment lookup: 1 per 3 minutes"
-                    }:
-                        time_since_last_success = (
-                            time.time() - last_successful_request_time[index]
-                        )
-                        if time_since_last_success < ASSIGNMENT_LOOKUP_INTERVAL:
-                            time_to_sleep = (
-                                ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
-                            )
-                            logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
-                            time.sleep(time_to_sleep)
-                        continue
-                    else:
-                        logger.info(f"Sleeping for {int(TIME_SLEEP)} seconds")
-                        time.sleep(TIME_SLEEP)
-                        continue
-
-            if resp is None or resp.status_code != 200:
-                    continue
-            resp = resp.json()
-            eval_file = download_file(resp["data"]["validation_set_url"])
-            assignment_id = resp["id"]
-
-            for attempt in range(3):
-                try:
-                    ctx = click.Context(validate)
-                    ctx.invoke(
-                        validate,
-                        model_name_or_path=resp["task_submission"]["data"]["hg_repo_id"],
-                        base_model=resp["data"]["base_model"],
-                        eval_file=eval_file,
-                        context_length=resp["data"]["context_length"],
-                        max_params=resp["data"]["max_params"],
-                        validation_args_file=validation_args_file,
-                        assignment_id=resp["id"],
-                        local_test=False,
+        for index, task_id_num in enumerate(task_id_list):
+            resp = fed_ledger.request_validation_assignment(task_id_num)
+            if resp.status_code == 200:
+                last_successful_request_time[index] = time.time()
+                break
+            else:
+                logger.error(f"Failed to ask assignment_id: {resp.content}")
+                if resp.json() == {
+                    "detail": "Rate limit reached for validation assignment lookup: 1 per 3 minutes"
+                }:
+                    time_since_last_success = (
+                        time.time() - last_successful_request_time[index]
                     )
-                    break  # Break the loop if no exception
-                except KeyboardInterrupt:
-                    break
-                except Exception as e:
-                    logger.error(f"Attempt {attempt + 1} failed: {e}")
-                    if attempt == 2:
-                        logger.error(
-                            f"Marking assignment {assignment_id} as failed after 3 attempts"
+                    if time_since_last_success < ASSIGNMENT_LOOKUP_INTERVAL:
+                        time_to_sleep = (
+                            ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
                         )
-                        fed_ledger.mark_assignment_as_failed(assignment_id)
+                        logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
+                        time.sleep(time_to_sleep)
+                    continue
+                else:
+                    logger.info(f"Sleeping for {int(TIME_SLEEP)} seconds")
+                    time.sleep(TIME_SLEEP)
+                    continue
 
-            os.remove(eval_file)
-    except RuntimeError as e:
-        if "CUDA error: device-side assert triggered" in str(e):
-            print("CUDA error detected, exiting with code 100")
-            sys.exit(100)
-        else:
-            raise
+        if resp is None or resp.status_code != 200:
+                continue
+        resp = resp.json()
+        eval_file = download_file(resp["data"]["validation_set_url"])
+        assignment_id = resp["id"]
+
+        for attempt in range(3):
+            try:
+                ctx = click.Context(validate)
+                ctx.invoke(
+                    validate,
+                    model_name_or_path=resp["task_submission"]["data"]["hg_repo_id"],
+                    base_model=resp["data"]["base_model"],
+                    eval_file=eval_file,
+                    context_length=resp["data"]["context_length"],
+                    max_params=resp["data"]["max_params"],
+                    validation_args_file=validation_args_file,
+                    assignment_id=resp["id"],
+                    local_test=False,
+                )
+                break  # Break the loop if no exception
+            except KeyboardInterrupt:
+                break
+            except RuntimeError as e:
+                if "CUDA error: device-side assert triggered" in str(e):
+                    logger.error("CUDA error detected, exiting with code 100")
+                    sys.exit(100)
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == 2:
+                    logger.error(
+                        f"Marking assignment {assignment_id} as failed after 3 attempts"
+                    )
+                    fed_ledger.mark_assignment_as_failed(assignment_id)
+
+        os.remove(eval_file)
 
 cli.add_command(validate)
 cli.add_command(loop)
