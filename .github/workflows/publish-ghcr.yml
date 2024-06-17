@@ -10,7 +10,7 @@ on:
 # Defines environment variables for the workflow. These are used for the Container registry domain, and a version for the Docker image that this workflow builds.
 env:
   REGISTRY: ghcr.io
-  VERSION: ${{ github.sha }}
+  VERSION: ${{ github.ref_name }}
 
 jobs:
   build-and-push-image-gpu:
