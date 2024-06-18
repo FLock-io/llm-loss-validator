@@ -296,10 +296,16 @@ def validate(
             f"Successfully submitted validation result for assignment {assignment_id}"
         )
     except (OSError, RuntimeError) as e:
-        # log the type of the exception
-        logger.error(f"An error occurred while validating the model: {e}")
-        # fail this assignment
-        fed_ledger.mark_assignment_as_failed(assignment_id)
+        # Handle CUDA related error
+        if "CUDA error: device-side assert triggered" in str(e):
+            logger.error("CUDA error detected, exiting with code 100")
+            sys.exit(100)
+        else:
+            # log the type of the exception
+            logger.error(f"An error occurred while validating the model: {e}")
+            # fail this assignment
+            fed_ledger.mark_assignment_as_failed(assignment_id)
+
     # raise for other exceptions
     except Exception as e:
         raise e
@@ -395,10 +401,6 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
                 break  # Break the loop if no exception
             except KeyboardInterrupt:
                 break
-            except RuntimeError as e:
-                if "CUDA error: device-side assert triggered" in str(e):
-                    logger.error("CUDA error detected, exiting with code 100")
-                    sys.exit(100)
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1} failed: {e}")
                 if attempt == 2:
