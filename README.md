@@ -60,5 +60,11 @@ If you wish to continuously receive task assignments, you should use the followi
 
 ```bash
 cd /src
-bash start.sh --hf_token your_hf_token --flock_api_key your_flock_api_key --task_id your_task_id --validation_args_file validation_config.json.example --auto_clean_cache False
+CUDA_VISIBLE_DEVICES=0 \
+bash start.sh \
+--hf_token your_hf_token \
+--flock_api_key your_flock_api_key \
+--task_id your_task_id \
+--validation_args_file validation_config.json.example \
+--auto_clean_cache False
 ```
