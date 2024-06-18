@@ -152,7 +152,12 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
 
     return model
 
-def is_latest_version(repo_path):
+def is_latest_version(repo_path: str):
+    """
+    Check if the current branch is up-to-date with the remote main branch.
+    Parameters:
+    - repo_path (str or Path): The path to the git repository.
+    """
     try:
         repo = git.Repo(repo_path)
         origin = repo.remotes.origin
@@ -167,7 +172,8 @@ def is_latest_version(repo_path):
     except git.exc.InvalidGitRepositoryError:
         logger.error("This is not a git repository.")
         raise
-    except Exception:
+    except Exception as e:
+        logger.error("An error occurred: %s", str(e))
         raise
 
 def load_sft_dataset(
