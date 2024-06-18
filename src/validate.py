@@ -379,7 +379,7 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
                     continue
 
         if resp is None or resp.status_code != 200:
-                continue
+            continue
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
         assignment_id = resp["id"]
