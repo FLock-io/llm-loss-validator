@@ -13,3 +13,4 @@ transformers_stream_generator
 tenacity
 python-dotenv
 peft>=0.10.0
+gitpython

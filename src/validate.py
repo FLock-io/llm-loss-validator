@@ -2,6 +2,7 @@ import json
 import os
 import time
 import shutil
+import git
 
 import gc
 import click
@@ -18,6 +19,7 @@ from transformers import (
     file_utils,
 )
 
+from pathlib import Path
 from dotenv import load_dotenv
 from pathlib import Path
 from core.collator import SFTDataCollator
@@ -150,6 +152,29 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
 
     return model
 
+def is_latest_version(repo_path: str):
+    """
+    Check if the current branch is up-to-date with the remote main branch.
+    Parameters:
+    - repo_path (str or Path): The path to the git repository.
+    """
+    try:
+        repo = git.Repo(repo_path)
+        origin = repo.remotes.origin
+        origin.fetch()
+
+        local_commit = repo.commit('main')
+        remote_commit = repo.commit('origin/main')
+
+        if local_commit.hexsha != remote_commit.hexsha:
+            logger.error("The local code is not up to date with the main branch.Pls update your version")
+            raise
+    except git.exc.InvalidGitRepositoryError:
+        logger.error("This is not a git repository.")
+        raise
+    except Exception as e:
+        logger.error("An error occurred: %s", str(e))
+        raise
 
 def load_sft_dataset(
     eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
@@ -338,6 +363,9 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
         logger.info("Auto clean the model cache except for the base model")
     else:
         logger.info("Skip auto clean the model cache")
+
+    repo_path = Path(__file__).resolve().parent.parent
+    is_latest_version(repo_path)
 
     fed_ledger = FedLedger(FLOCK_API_KEY)
     task_id_list = task_id.split(",")
