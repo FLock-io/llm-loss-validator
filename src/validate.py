@@ -2,7 +2,6 @@ import json
 import os
 import time
 import shutil
-import git
 
 import gc
 import click
@@ -41,6 +40,9 @@ LOSS_FOR_MODEL_PARAMS_EXCEED = 999.0
 HF_TOKEN = os.getenv("HF_TOKEN")
 IS_DOCKER_CONTAINER = os.getenv("IS_DOCKER_CONTAINER", False)
 
+if not IS_DOCKER_CONTAINER:
+    import git # only import git in non-docker container environment because it is not installed in docker image
+    
 if HF_TOKEN is None:
     raise ValueError(
         "You need to set HF_TOKEN to download some gated model from HuggingFace"
