@@ -29,6 +29,7 @@ from core.constant import SUPPORTED_BASE_MODELS
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 from peft import PeftModel
+import sys
 
 load_dotenv()
 TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 10))
@@ -324,10 +325,16 @@ def validate(
             f"Successfully submitted validation result for assignment {assignment_id}"
         )
     except (OSError, RuntimeError) as e:
-        # log the type of the exception
-        logger.error(f"An error occurred while validating the model: {e}")
-        # fail this assignment
-        fed_ledger.mark_assignment_as_failed(assignment_id)
+        # Handle CUDA related error
+        if "CUDA error: device-side assert triggered" in str(e):
+            logger.error("CUDA error detected, exiting with code 100")
+            sys.exit(100)
+        else:
+            # log the type of the exception
+            logger.error(f"An error occurred while validating the model: {e}")
+            # fail this assignment
+            fed_ledger.mark_assignment_as_failed(assignment_id)
+
     # raise for other exceptions
     except Exception as e:
         raise e
@@ -380,7 +387,6 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
     task_id_list = task_id.split(",")
     logger.info(f"Validating task_id: {task_id_list}")
     last_successful_request_time = [time.time()] * len(task_id_list)
-
     while True:
         clean_model_cache(auto_clean_cache)
 
@@ -411,7 +417,6 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
 
         if resp is None or resp.status_code != 200:
             continue
-
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
         assignment_id = resp["id"]
@@ -442,7 +447,6 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
                     fed_ledger.mark_assignment_as_failed(assignment_id)
 
         os.remove(eval_file)
-
 
 cli.add_command(validate)
 cli.add_command(loop)
