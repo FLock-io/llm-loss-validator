@@ -15,4 +15,6 @@ RUN pip3 install -r requirements.txt
 
 WORKDIR /app/src
 
+ENV IS_DOCKER_CONTAINER=1
+
 CMD ["sh", "-c", "bash start.sh --hf_token ${HF_TOKEN} --flock_api_key ${FLOCK_API_KEY} --task_id ${TASK_ID}"]
