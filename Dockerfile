@@ -9,4 +9,4 @@ RUN pip3 install -r requirements.txt
 WORKDIR /app/src
 
 
-CMD ["sh", "-c", "python validate.py loop --task_id ${task_id} --validation_args_file validation_config_cpu.json.example"]
+CMD ["sh", "-c", "bash start.sh --hf_token ${HF_TOKEN} --flock_api_key ${FLOCK_API_KEY} --task_id ${TASK_ID}"]
