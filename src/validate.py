@@ -39,6 +39,8 @@ if FLOCK_API_KEY is None:
     raise ValueError("FLOCK_API_KEY is not set")
 LOSS_FOR_MODEL_PARAMS_EXCEED = 999.0
 HF_TOKEN = os.getenv("HF_TOKEN")
+IS_DOCKER_CONTAINER = os.getenv("IS_DOCKER_CONTAINER", False)
+
 if HF_TOKEN is None:
     raise ValueError(
         "You need to set HF_TOKEN to download some gated model from HuggingFace"
@@ -365,7 +367,12 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
         logger.info("Skip auto clean the model cache")
 
     repo_path = Path(__file__).resolve().parent.parent
-    is_latest_version(repo_path)
+    
+    if not IS_DOCKER_CONTAINER:
+        is_latest_version(repo_path)
+    else:
+        logger.info("Skip checking the latest version in docker container")
+        logger.info("Please make sure you are using the latest version of the docker image.")
 
     fed_ledger = FedLedger(FLOCK_API_KEY)
     task_id_list = task_id.split(",")
