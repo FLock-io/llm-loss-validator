@@ -57,7 +57,7 @@ CUDA_VISIBLE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py validat
 ```
 
 If you wish to continuously receive task assignments, you should use the following command:
-
+### For Linux/MacOS Users and Windows Users with WSL (Bash)
 ```bash
 cd /src
 CUDA_VISIBLE_DEVICES=0 \
@@ -67,4 +67,16 @@ bash start.sh \
 --task_id your_task_id \
 --validation_args_file validation_config.json.example \
 --auto_clean_cache False
+```
+
+### For Windows Users (PowerShell)
+```powershell
+cd /src
+$env:CUDA_VISIBLE_DEVICES=0
+powershell -File .\start.ps1 `
+-hf_token <your_hf_token> `
+-flock_api_key <your_flock_api_key> `
+-task_id <your_task_id> `
+-validation_args_file validation_config.json.example `
+-other_args @("--auto_clean_cache", "False")
 ```
