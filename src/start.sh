@@ -12,7 +12,7 @@ while [[ "$#" -gt 0 ]]; do
         --flock_api_key) FLOCK_API_KEY="$2"; shift 2 ;;
         --task_id) TASK_ID="$2"; shift 2 ;;
         --validation_args_file) VALIDATION_ARGS_FILE="$2"; shift 2 ;;
-        *) 
+        *)
             if [[ "$2" != --* ]]; then
                 OTHER_ARGS+="$1 $2 "; shift 2
             else
