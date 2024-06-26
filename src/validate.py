@@ -18,7 +18,6 @@ from transformers import (
     file_utils,
 )
 
-from pathlib import Path
 from dotenv import load_dotenv
 from pathlib import Path
 from core.collator import SFTDataCollator
@@ -42,8 +41,8 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 IS_DOCKER_CONTAINER = os.getenv("IS_DOCKER_CONTAINER", False)
 
 if not IS_DOCKER_CONTAINER:
-    import git # only import git in non-docker container environment because it is not installed in docker image
-    
+    import git  # only import git in non-docker container environment because it is not installed in docker image
+
 if HF_TOKEN is None:
     raise ValueError(
         "You need to set HF_TOKEN to download some gated model from HuggingFace"
@@ -157,6 +156,7 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
 
     return model
 
+
 def is_latest_version(repo_path: str):
     """
     Check if the current branch is up-to-date with the remote main branch.
@@ -168,11 +168,13 @@ def is_latest_version(repo_path: str):
         origin = repo.remotes.origin
         origin.fetch()
 
-        local_commit = repo.commit('main')
-        remote_commit = repo.commit('origin/main')
+        local_commit = repo.commit("main")
+        remote_commit = repo.commit("origin/main")
 
         if local_commit.hexsha != remote_commit.hexsha:
-            logger.error("The local code is not up to date with the main branch.Pls update your version")
+            logger.error(
+                "The local code is not up to date with the main branch.Pls update your version"
+            )
             raise
     except git.exc.InvalidGitRepositoryError:
         logger.error("This is not a git repository.")
@@ -180,6 +182,7 @@ def is_latest_version(repo_path: str):
     except Exception as e:
         logger.error("An error occurred: %s", str(e))
         raise
+
 
 def load_sft_dataset(
     eval_file: str, max_seq_length: int, template_name: str, tokenizer: AutoTokenizer
@@ -376,12 +379,14 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
         logger.info("Skip auto clean the model cache")
 
     repo_path = Path(__file__).resolve().parent.parent
-    
+
     if not IS_DOCKER_CONTAINER:
         is_latest_version(repo_path)
     else:
         logger.info("Skip checking the latest version in docker container")
-        logger.info("Please make sure you are using the latest version of the docker image.")
+        logger.info(
+            "Please make sure you are using the latest version of the docker image."
+        )
 
     fed_ledger = FedLedger(FLOCK_API_KEY)
     task_id_list = task_id.split(",")
@@ -447,6 +452,7 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
                     fed_ledger.mark_assignment_as_failed(assignment_id)
 
         os.remove(eval_file)
+
 
 cli.add_command(validate)
 cli.add_command(loop)
