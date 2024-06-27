@@ -449,7 +449,7 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
                 # directly terminate the process if keyboard interrupt
                 sys.exit(1)
             except OSError as e:
-                handle_os_error(e)
+                handle_os_error(e, assignment_id, fed_ledger)
             except RuntimeError as e:
                 handle_runtime_error(e, assignment_id, fed_ledger)
             except ValueError as e:
