@@ -25,6 +25,11 @@ from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
 from core.hf_utils import download_lora_config, download_lora_repo
 from core.constant import SUPPORTED_BASE_MODELS
+from core.exception import (
+    handle_os_error,
+    handle_runtime_error,
+    handle_value_error,
+)
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 from peft import PeftModel
@@ -267,6 +272,9 @@ def validate(
             "assignment_id is required for submitting validation result to the server"
         )
 
+    model = None
+    eval_dataset = None
+
     try:
         fed_ledger = FedLedger(FLOCK_API_KEY)
         parser = HfArgumentParser(TrainingArguments)
@@ -327,25 +335,18 @@ def validate(
         logger.info(
             f"Successfully submitted validation result for assignment {assignment_id}"
         )
-    except (OSError, RuntimeError) as e:
-        # Handle CUDA related error
-        if "CUDA error: device-side assert triggered" in str(e):
-            logger.error("CUDA error detected, exiting with code 100")
-            sys.exit(100)
-        else:
-            # log the type of the exception
-            logger.error(f"An error occurred while validating the model: {e}")
-            # fail this assignment
-            fed_ledger.mark_assignment_as_failed(assignment_id)
 
-    # raise for other exceptions
+    # raise for exceptions, will handle at `loop` level
     except Exception as e:
         raise e
     finally:
         # offload the model to save memory
         gc.collect()
-        model.cpu()
-        del model, eval_dataset
+        if model is not None:
+            model.cpu()
+            del model
+        if eval_dataset is not None:
+            del eval_dataset
         torch.cuda.empty_cache()
         # remove lora folder
         if os.path.exists("lora"):
@@ -442,7 +443,14 @@ def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool 
                 )
                 break  # Break the loop if no exception
             except KeyboardInterrupt:
-                break
+                # directly terminate the process if keyboard interrupt
+                sys.exit(1)
+            except OSError as e:
+                handle_os_error(e)
+            except RuntimeError as e:
+                handle_runtime_error(e, assignment_id, fed_ledger)
+            except ValueError as e:
+                handle_value_error(e, assignment_id, fed_ledger)
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1} failed: {e}")
                 if attempt == 2:
