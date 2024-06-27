@@ -15,7 +15,7 @@ def handle_os_error(e: OSError):
 def handle_runtime_error(e: RuntimeError, assignment_id: str, client: FedLedger):
     if "CUDA error: device-side assert triggered" in str(e):
         logger.error(
-            "CUDA device-side assert triggered error detected, exiting with code 10, will restart..."
+            "CUDA device-side assert triggered error detected, exiting with code 100, will restart..."
         )
         sys.exit(100)
     if "out of memory" in str(e):
