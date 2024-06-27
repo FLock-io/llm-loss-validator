@@ -3,12 +3,17 @@ from client.fed_ledger import FedLedger
 import sys
 
 
-def handle_os_error(e: OSError):
+def handle_os_error(e: OSError, assignment_id: str, client: FedLedger):
     if "No space left on device" in str(e):
         logger.error("No more disk space, exiting with code 101")
         sys.exit(101)
+    elif "not a valid model identifier" in str(e):
+        logger.error("Not able to access the model, will mark the assignment as failed")
+        client.mark_assignment_as_failed(assignment_id)
     else:
-        logger.error("Unknown OSError detected, exiting with code 100, will restart...")
+        logger.error(
+            f"Unknown OSError detected, exiting with code 100, will restart... {e}"
+        )
         sys.exit(100)
 
 
@@ -25,7 +30,7 @@ def handle_runtime_error(e: RuntimeError, assignment_id: str, client: FedLedger)
         client.mark_assignment_as_failed(assignment_id)
     else:
         logger.error(
-            "Unknown RuntimeError detected, exiting with code 100, will restart..."
+            f"Unknown RuntimeError detected, exiting with code 100, will restart... {e}"
         )
         sys.exit(100)
 
@@ -38,6 +43,6 @@ def handle_value_error(e: ValueError, assignment_id: str, client: FedLedger):
         sys.exit(101)
     else:
         logger.error(
-            "Unknown ValueError detected, exiting with code 100, will restart..."
+            f"Unknown ValueError detected, exiting with code 100, will restart... {e}"
         )
         sys.exit(100)
