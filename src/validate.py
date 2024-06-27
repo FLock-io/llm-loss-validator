@@ -343,13 +343,16 @@ def validate(
         # offload the model to save memory
         gc.collect()
         if model is not None:
+            logger.debug("Offloading model to save memory")
             model.cpu()
             del model
         if eval_dataset is not None:
+            logger.debug("Offloading eval_dataset to save memory")
             del eval_dataset
         torch.cuda.empty_cache()
         # remove lora folder
         if os.path.exists("lora"):
+            logger.debug("Removing lora folder")
             os.system("rm -rf lora")
 
 
