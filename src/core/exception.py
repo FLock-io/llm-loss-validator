@@ -12,8 +12,9 @@ def handle_os_error(e: OSError, assignment_id: str, client: FedLedger):
         client.mark_assignment_as_failed(assignment_id)
     else:
         logger.error(
-            f"Unknown OSError detected, exiting with code 100, will restart... {e}"
+            f"Unknown OSError detected, exiting with code 100, will mark the assignment as failed and restart... {e}"
         )
+        client.mark_assignment_as_failed(assignment_id)
         sys.exit(100)
 
 
