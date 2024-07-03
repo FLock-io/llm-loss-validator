@@ -111,8 +111,10 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
     return tokenizer
 
 
-def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
-    # logger.info(f'Loading model from base model: {args.model_name_or_path}')
+def load_model(
+    model_name_or_path: str, lora_only: bool, val_args: TrainingArguments
+) -> Trainer:
+    logger.info(f"Loading model from base model: {model_name_or_path}")
 
     if val_args.use_cpu:
         torch_dtype = torch.float32
@@ -144,6 +146,11 @@ def load_model(model_name_or_path: str, val_args: TrainingArguments) -> Trainer:
         logger.info("Loaded model with adapter weights")
     # assuming full fine-tuned model
     else:
+        if lora_only:
+            logger.error(
+                "Repo is not a lora weight, but lora_only flag is set to True. Will mark the assignment as failed"
+            )
+            return None
         logger.info("Repo is a full fine-tuned model, loading model directly")
         model = AutoModelForCausalLM.from_pretrained(
             model_name_or_path, token=HF_TOKEN, **model_kwargs
@@ -266,6 +273,7 @@ def validate(
     validation_args_file: str,
     assignment_id: str = None,
     local_test: bool = False,
+    lora_only: bool = True,
 ):
     if not local_test and assignment_id is None:
         raise ValueError(
@@ -284,7 +292,11 @@ def validate(
         eval_dataset = load_sft_dataset(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
-        model = load_model(model_name_or_path, val_args)
+        model = load_model(model_name_or_path, lora_only, val_args)
+        # if model is not loaded, mark the assignment as failed and return
+        if model is None:
+            fed_ledger.mark_assignment_as_failed(assignment_id)
+            return
         # if the number of parameters exceeds the limit, submit a validation result with a large loss
         total = sum(p.numel() for p in model.parameters())
         if total > max_params:
@@ -374,7 +386,15 @@ def validate(
     default=True,
     help="Auto clean the model cache except for the base model",
 )
-def loop(validation_args_file: str, task_id: str = None, auto_clean_cache: bool = True):
+@click.option(
+    "--lora_only", type=bool, default=True, help="Only validate repo with lora weight"
+)
+def loop(
+    validation_args_file: str,
+    task_id: str = None,
+    auto_clean_cache: bool = True,
+    lora_only: bool = True,
+):
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
     if auto_clean_cache:
