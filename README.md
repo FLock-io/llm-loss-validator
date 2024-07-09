@@ -1,4 +1,5 @@
 # llm-loss-validator
+
 Validator that computes the validation loss for a huggingface-compatible LLM
 
 ## Environment Setup
@@ -13,7 +14,25 @@ pip install -r requirements.txt
 
 ## How to run validation script
 
-### With CPU
+### Automation with GPU
+
+If you wish to continuously receive task assignments, you should use the following command:
+
+```bash
+cd /src
+CUDA_VISIBLE_DEVICES=0 \
+bash start.sh \
+--hf_token your_hf_token \
+--flock_api_key your_flock_api_key \
+--task_id your_task_id \
+--validation_args_file validation_config.json.example \
+--auto_clean_cache False \
+--lora_only True
+```
+
+### Validate only one assignment
+
+#### With CPU
 
 ```bash
 cd /src
@@ -27,7 +46,7 @@ FLOCK_API_KEY="<your-api-key>" python validate.py validate \
 --validation_args_file validation_config_cpu.json.example
 ```
 
-### With GPU
+#### With GPU
 
 ```bash
 cd /src
@@ -54,17 +73,4 @@ CUDA_VISIBLE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py validat
 --max_params 7000000000 \
 --assignment_id <assignment-id> \
 --validation_args_file validation_config.json.example
-```
-
-If you wish to continuously receive task assignments, you should use the following command:
-
-```bash
-cd /src
-CUDA_VISIBLE_DEVICES=0 \
-bash start.sh \
---hf_token your_hf_token \
---flock_api_key your_flock_api_key \
---task_id your_task_id \
---validation_args_file validation_config.json.example \
---auto_clean_cache False
 ```
