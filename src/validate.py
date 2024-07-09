@@ -463,6 +463,7 @@ def loop(
                     validation_args_file=validation_args_file,
                     assignment_id=resp["id"],
                     local_test=False,
+                    lora_only=lora_only,
                 )
                 break  # Break the loop if no exception
             except KeyboardInterrupt:
