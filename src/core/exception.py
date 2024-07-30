@@ -34,6 +34,7 @@ def handle_runtime_error(e: RuntimeError, assignment_id: str, client: FedLedger)
         logger.error(
             f"Unknown RuntimeError detected, exiting with code 100, will restart... {e}"
         )
+        client.mark_assignment_as_failed(assignment_id)
         sys.exit(100)
 
 
