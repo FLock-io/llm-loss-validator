@@ -19,6 +19,9 @@ class FedLedger:
     def request_validation_assignment(self, task_id: str):
         url = f"{self.url}/tasks/request-validation-assignment/{task_id}"
         response = requests.post(url, headers=self.headers)
+        # make sure retry if the response is not 200
+        if response.status_code != 200:
+            raise Exception(f"Failed to request validation assignment: {response.text}")
         return response
 
     @retry(
@@ -36,6 +39,8 @@ class FedLedger:
                 },
             },
         )
+        if response.status_code != 200:
+            raise Exception(f"Failed to submit validation result: {response.text}")
         return response
 
     @retry(
@@ -50,4 +55,6 @@ class FedLedger:
                 "status": "failed",
             },
         )
+        if response.status_code != 200:
+            raise Exception(f"Failed to mark assignment as failed: {response.text}")
         return response
