@@ -1,5 +1,4 @@
 import requests
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 
 class FedLedger:
@@ -13,19 +12,11 @@ class FedLedger:
             "Content-Type": "application/json",
         }
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=3, max=10)
-    )
     def request_validation_assignment(self, task_id: str):
         url = f"{self.url}/tasks/request-validation-assignment/{task_id}"
         response = requests.post(url, headers=self.headers)
-        if response.status_code == 502:
-            raise Exception("Bad Gateway")
         return response
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=3, max=10)
-    )
     def submit_validation_result(self, assignment_id: str, loss: float):
         url = f"{self.url}/tasks/update-validation-assignment/{assignment_id}"
         response = requests.post(
@@ -40,9 +31,6 @@ class FedLedger:
         )
         return response
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=3, max=10)
-    )
     def mark_assignment_as_failed(self, assignment_id: str):
         url = f"{self.url}/tasks/update-validation-assignment/{assignment_id}"
         response = requests.post(
