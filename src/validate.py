@@ -428,7 +428,9 @@ def loop(
                 if resp.json() == {
                     "detail": "No task submissions available to validate"
                 }:
-                    logger.info("Failed to ask assignment_id: No task submissions available to validate")
+                    logger.info(
+                        "Failed to ask assignment_id: No task submissions available to validate"
+                    )
                 else:
                     logger.error(f"Failed to ask assignment_id: {resp.content}")
                 if resp.json() == {
