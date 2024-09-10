@@ -425,7 +425,14 @@ def loop(
                 last_successful_request_time[index] = time.time()
                 break
             else:
-                logger.error(f"Failed to ask assignment_id: {resp.content}")
+                if resp.json() == {
+                    "detail": "No task submissions available to validate"
+                }:
+                    logger.info(
+                        "Failed to ask assignment_id: No task submissions available to validate"
+                    )
+                else:
+                    logger.error(f"Failed to ask assignment_id: {resp.content}")
                 if resp.json() == {
                     "detail": "Rate limit reached for validation assignment lookup: 1 per 3 minutes"
                 }:
