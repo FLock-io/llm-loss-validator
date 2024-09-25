@@ -24,6 +24,7 @@ from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
 from core.hf_utils import download_lora_config, download_lora_repo
+from core.gpu_utils import get_gpu_type
 from core.constant import SUPPORTED_BASE_MODELS
 from core.exception import (
     handle_os_error,
@@ -287,6 +288,7 @@ def validate(
         fed_ledger = FedLedger(FLOCK_API_KEY)
         parser = HfArgumentParser(TrainingArguments)
         val_args = parser.parse_json_file(json_file=validation_args_file)[0]
+        gpu_type = get_gpu_type()
 
         tokenizer = load_tokenizer(model_name_or_path)
         eval_dataset = load_sft_dataset(
@@ -308,6 +310,7 @@ def validate(
             resp = fed_ledger.submit_validation_result(
                 assignment_id=assignment_id,
                 loss=LOSS_FOR_MODEL_PARAMS_EXCEED,
+                gpu_type=gpu_type
             )
             # check response is 200
             if resp.status_code != 200:
@@ -332,6 +335,7 @@ def validate(
         resp = fed_ledger.submit_validation_result(
             assignment_id=assignment_id,
             loss=eval_loss,
+            gpu_type=gpu_type
         )
         # check response is 200
         if resp.status_code != 200:

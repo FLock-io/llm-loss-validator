@@ -17,7 +17,7 @@ class FedLedger:
         response = requests.post(url, headers=self.headers)
         return response
 
-    def submit_validation_result(self, assignment_id: str, loss: float):
+    def submit_validation_result(self, assignment_id: str, loss: float, gpu_type: str):
         url = f"{self.url}/tasks/update-validation-assignment/{assignment_id}"
         response = requests.post(
             url,
@@ -26,6 +26,7 @@ class FedLedger:
                 "status": "completed",
                 "data": {
                     "loss": loss,
+                    "gpu_type": gpu_type,
                 },
             },
         )
