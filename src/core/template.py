@@ -39,7 +39,7 @@ register_template(
 
 
 register_template(
-    template_name="qwen1.5",
+    template_name="qwen",
     system_format="<|im_start|>system\n{content}<|im_end|>\n",
     user_format="<|im_start|>user\n{content}<|im_end|>\n<|im_start|>assistant\n",
     assistant_format="{content}<|im_end|>\n",
@@ -116,4 +116,13 @@ register_template(
     assistant_format="{content}<|eot_id|>",
     system=None,
     stop_word="<|eot_id|>",
+)
+
+register_template(
+    template_name='phi3',
+    system_format=None,
+    user_format='<|user|>\n{content}<|end|>\n<|assistant|>',
+    assistant_format='{content}<|end|>\n',
+    system=None,
+    stop_word='<|end|>'
 )
