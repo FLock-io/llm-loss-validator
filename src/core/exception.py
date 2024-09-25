@@ -48,4 +48,5 @@ def handle_value_error(e: ValueError, assignment_id: str, client: FedLedger):
         logger.error(
             f"Unknown ValueError detected, exiting with code 100, will restart... {e}"
         )
+        client.mark_assignment_as_failed(assignment_id)
         sys.exit(100)
