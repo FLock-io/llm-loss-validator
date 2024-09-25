@@ -310,7 +310,7 @@ def validate(
             resp = fed_ledger.submit_validation_result(
                 assignment_id=assignment_id,
                 loss=LOSS_FOR_MODEL_PARAMS_EXCEED,
-                gpu_type=gpu_type
+                gpu_type=gpu_type,
             )
             # check response is 200
             if resp.status_code != 200:
@@ -333,9 +333,7 @@ def validate(
             logger.info("The model can be correctly validated by validators.")
             return
         resp = fed_ledger.submit_validation_result(
-            assignment_id=assignment_id,
-            loss=eval_loss,
-            gpu_type=gpu_type
+            assignment_id=assignment_id, loss=eval_loss, gpu_type=gpu_type
         )
         # check response is 200
         if resp.status_code != 200:
