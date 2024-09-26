@@ -95,7 +95,6 @@ SUPPORTED_BASE_MODELS = [
     "meta-llama/Meta-Llama-3.1-70B-Instruct",
     # phi3
     "microsoft/Phi-3.5-mini-instruct",
-    "microsoft/Phi-3.5-MoE-instruct",
     "microsoft/Phi-3-mini-4k-instruct",
     "microsoft/Phi-3-small-8k-instruct",
     "microsoft/Phi-3-medium-4k-instruct",
