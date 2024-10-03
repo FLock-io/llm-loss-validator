@@ -112,7 +112,7 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
 
 
 def load_model(
-    model_name_or_path: str, lora_only: bool, val_args: TrainingArguments
+    model_name_or_path: str, lora_only: bool, revision: str, val_args: TrainingArguments
 ) -> Trainer:
     logger.info(f"Loading model from base model: {model_name_or_path}")
 
@@ -127,7 +127,7 @@ def load_model(
         device_map=None,
     )
     # check whether it is a lora weight
-    if download_lora_config(model_name_or_path):
+    if download_lora_config(model_name_or_path, revision):
         logger.info("Repo is a lora weight, loading model with adapter weights")
         with open("lora/adapter_config.json", "r") as f:
             adapter_config = json.load(f)
@@ -136,7 +136,7 @@ def load_model(
             base_model, token=HF_TOKEN, **model_kwargs
         )
         # download the adapter weights
-        download_lora_repo(model_name_or_path)
+        download_lora_repo(model_name_or_path, revision)
         model = PeftModel.from_pretrained(
             model,
             "lora",
@@ -274,6 +274,7 @@ def validate(
     assignment_id: str = None,
     local_test: bool = False,
     lora_only: bool = True,
+    revision: str = "main",
 ):
     if not local_test and assignment_id is None:
         raise ValueError(
@@ -292,7 +293,7 @@ def validate(
         eval_dataset = load_sft_dataset(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
-        model = load_model(model_name_or_path, lora_only, val_args)
+        model = load_model(model_name_or_path, lora_only, revision, val_args)
         # if model is not loaded, mark the assignment as failed and return
         if model is None:
             fed_ledger.mark_assignment_as_failed(assignment_id)
@@ -455,6 +456,7 @@ def loop(
             continue
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
+        revision = resp["data"].get("revision", "main")
         assignment_id = resp["id"]
 
         for attempt in range(3):
@@ -471,6 +473,7 @@ def loop(
                     assignment_id=resp["id"],
                     local_test=False,
                     lora_only=lora_only,
+                    revision=revision,
                 )
                 break  # Break the loop if no exception
             except KeyboardInterrupt:
