@@ -458,7 +458,7 @@ def loop(
             continue
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
-        revision = resp["data"].get("revision", "main")
+        revision = resp["task_submission"]["data"].get("revision", "main")
         assignment_id = resp["id"]
 
         for attempt in range(3):
