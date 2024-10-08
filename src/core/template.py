@@ -117,3 +117,12 @@ register_template(
     system=None,
     stop_word="<|eot_id|>",
 )
+
+register_template(
+    template_name="phi3",
+    system_format=None,
+    user_format="<|user|>\n{content}<|end|>\n<|assistant|>",
+    assistant_format="{content}<|end|>\n",
+    system=None,
+    stop_word="<|end|>",
+)

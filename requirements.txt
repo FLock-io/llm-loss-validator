@@ -1,5 +1,6 @@
 torch>=1.13.1
-transformers>=4.37.2
+huggingface-hub>=0.24.7,<0.25
+transformers>=4.43.0,<=4.45.0
 datasets>=2.14.3
 accelerate>=0.27.2
 loguru==0.7.0

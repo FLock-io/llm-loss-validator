@@ -23,6 +23,21 @@ SUPPORTED_BASE_MODELS = [
     "Qwen/Qwen2-7B-Instruct",
     "Qwen/Qwen2-72B",
     "Qwen/Qwen2-72B-Instruct",
+    # qwen2.5
+    "Qwen/Qwen2.5-0.5B",
+    "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen/Qwen2.5-1.5B",
+    "Qwen/Qwen2.5-1.5B-Instruct",
+    "Qwen/Qwen2.5-3B",
+    "Qwen/Qwen2.5-3B-Instruct",
+    "Qwen/Qwen2.5-7B",
+    "Qwen/Qwen2.5-7B-Instruct",
+    "Qwen/Qwen2.5-14B",
+    "Qwen/Qwen2.5-14B-Instruct",
+    "Qwen/Qwen2.5-32B",
+    "Qwen/Qwen2.5-32B-Instruct",
+    "Qwen/Qwen2.5-72B",
+    "Qwen/Qwen2.5-72B-Instruct",
     # Yi
     "01-ai/Yi-6B",
     "01-ai/Yi-6B-Chat",
@@ -51,6 +66,13 @@ SUPPORTED_BASE_MODELS = [
     "google/gemma-7b",
     "google/gemma-2b-it",
     "google/gemma-7b-it",
+    # gemma2
+    "google/gemma-2-2b",
+    "google/gemma-2-9b",
+    "google/gemma-2-27b",
+    "google/gemma-2-2b-it",
+    "google/gemma-2-9b-it",
+    "google/gemma-2-27b-it",
     # zephyr
     "HuggingFaceH4/zephyr-7b-alpha",
     "HuggingFaceH4/zephyr-7b-beta",
@@ -66,4 +88,14 @@ SUPPORTED_BASE_MODELS = [
     "meta-llama/Meta-Llama-3-8B-Instruct",
     "meta-llama/Meta-Llama-3-70B",
     "meta-llama/Meta-Llama-3-70B-Instruct",
+    # llama3.1
+    "meta-llama/Meta-Llama-3.1-8B",
+    "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    "meta-llama/Meta-Llama-3.1-70B",
+    "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    # phi3
+    "microsoft/Phi-3.5-mini-instruct",
+    "microsoft/Phi-3-mini-4k-instruct",
+    "microsoft/Phi-3-small-8k-instruct",
+    "microsoft/Phi-3-medium-4k-instruct",
 ]
