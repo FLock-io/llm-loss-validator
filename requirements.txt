@@ -17,3 +17,4 @@ peft>=0.10.0
 gitpython
 pre-commit
 huggingface_hub==0.23.2
+flash-attention
