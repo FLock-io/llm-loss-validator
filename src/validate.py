@@ -423,36 +423,45 @@ def loop(
         clean_model_cache(auto_clean_cache)
 
         for index, task_id_num in enumerate(task_id_list):
-            resp = fed_ledger.request_validation_assignment(task_id_num)
-            if resp.status_code == 200:
-                last_successful_request_time[index] = time.time()
-                break
-            else:
-                if resp.json() == {
-                    "detail": "No task submissions available to validate"
-                }:
-                    logger.info(
-                        "Failed to ask assignment_id: No task submissions available to validate"
-                    )
+            try:
+                resp = fed_ledger.request_validation_assignment(task_id_num)
+                if resp.status_code == 200:
+                    last_successful_request_time[index] = time.time()
+                    break
                 else:
-                    logger.error(f"Failed to ask assignment_id: {resp.content}")
-                if resp.json() == {
-                    "detail": "Rate limit reached for validation assignment lookup: 1 per 3 minutes"
-                }:
-                    time_since_last_success = (
-                        time.time() - last_successful_request_time[index]
-                    )
-                    if time_since_last_success < ASSIGNMENT_LOOKUP_INTERVAL:
-                        time_to_sleep = (
-                            ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
+                    if not resp.headers.get('content-type', '').startswith('application/json'):
+                        logger.error(f"Failed to ask assignment_id: {resp.content}")
+                        time.sleep(TIME_SLEEP)
+                        continue
+                    if resp.json() == {
+                        "detail": "No task submissions available to validate"
+                    }:
+                        logger.info(
+                            "Failed to ask assignment_id: No task submissions available to validate"
                         )
-                        logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
-                        time.sleep(time_to_sleep)
-                    continue
-                else:
-                    logger.info(f"Sleeping for {int(TIME_SLEEP)} seconds")
-                    time.sleep(TIME_SLEEP)
-                    continue
+                    else:
+                        logger.error(f"Failed to ask assignment_id: {resp.content}")
+                    if resp.json() == {
+                        "detail": "Rate limit reached for validation assignment lookup: 1 per 3 minutes"
+                    }:
+                        time_since_last_success = (
+                            time.time() - last_successful_request_time[index]
+                        )
+                        if time_since_last_success < ASSIGNMENT_LOOKUP_INTERVAL:
+                            time_to_sleep = (
+                                ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
+                            )
+                            logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
+                            time.sleep(time_to_sleep)
+                        continue
+                    else:
+                        logger.info(f"Sleeping for {int(TIME_SLEEP)} seconds")
+                        time.sleep(TIME_SLEEP)
+                        continue
+            except Exception as e:
+                logger.error(f"Failed to ask assignment_id: {e}")
+                time.sleep(TIME_SLEEP)
+                continue
 
         if resp is None or resp.status_code != 200:
             continue
