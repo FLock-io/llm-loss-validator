@@ -429,12 +429,6 @@ def loop(
                     last_successful_request_time[index] = time.time()
                     break
                 else:
-                    if not resp.headers.get("content-type", "").startswith(
-                        "application/json"
-                    ):
-                        logger.error(f"Failed to ask assignment_id: {resp.content}")
-                        time.sleep(TIME_SLEEP)
-                        continue
                     if resp.json() == {
                         "detail": "No task submissions available to validate"
                     }:
