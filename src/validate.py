@@ -154,7 +154,19 @@ def load_model(
             return None
         logger.info("Repo is a full fine-tuned model, loading model directly")
         model = AutoModelForCausalLM.from_pretrained(
-            model_name_or_path, token=HF_TOKEN, **model_kwargs
+            model_name_or_path,
+            token=HF_TOKEN,
+            **model_kwargs,
+            subfolder="",
+            allow_patterns=[
+                "adapter_config.json",
+                "adapter_model.safetensors",
+                "special_tokens_map.json",
+                "tokenizer.json",
+                "tokenizer_config.json",
+                "training_args.bin",
+                "tokenizer.model",
+            ],
         )
 
     if "output_router_logits" in model.config.to_dict():
