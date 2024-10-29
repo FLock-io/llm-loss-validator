@@ -41,7 +41,7 @@ class UnifiedSFTDataset(Dataset):
                 system_text = self.system_format.format(content=system)
                 input_ids = self.tokenizer.encode(system_text, add_special_tokens=False)
                 target_mask = [0] * len(input_ids)
-    
+
         # setting tool information
         if "tools" in data.keys() and data["tools"]:
             tools = json.loads(data["tools"])
@@ -52,7 +52,7 @@ class UnifiedSFTDataset(Dataset):
             target_mask = target_mask + [0] * len(tool_tokens)
 
         conversations = data["conversations"]
-        
+
         input_buffer = ""
         for i in range(len(conversations)):
             role = conversations[i]["role"]
@@ -60,22 +60,30 @@ class UnifiedSFTDataset(Dataset):
 
             if role != "assistant":
                 if role == "user":
-                    human = self.user_format.format(content=content, stop_token=self.tokenizer.eos_token)
+                    human = self.user_format.format(
+                        content=content, stop_token=self.tokenizer.eos_token
+                    )
                     input_buffer += human
-                
+
                 elif role == "function_call":
                     tool_calls = function_formatter(json.loads(content))
                     function = self.function_format.format(content=tool_calls)
                     input_buffer += function
-                
+
                 elif role == "observation":
                     observation = self.observation_format.format(content=content)
                     input_buffer += observation
             else:
-                assistant = self.assistant_format.format(content=content, stop_token=self.tokenizer.eos_token)
-                
-                input_tokens = self.tokenizer.encode(input_buffer, add_special_tokens=False)
-                output_tokens = self.tokenizer.encode(assistant, add_special_tokens=False)
+                assistant = self.assistant_format.format(
+                    content=content, stop_token=self.tokenizer.eos_token
+                )
+
+                input_tokens = self.tokenizer.encode(
+                    input_buffer, add_special_tokens=False
+                )
+                output_tokens = self.tokenizer.encode(
+                    assistant, add_special_tokens=False
+                )
 
                 input_ids += input_tokens + output_tokens
                 target_mask += [0] * len(input_tokens) + [1] * len(output_tokens)

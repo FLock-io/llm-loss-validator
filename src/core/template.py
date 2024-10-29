@@ -19,7 +19,15 @@ template_dict: Dict[str, Template] = dict()
 
 
 def register_template(
-    template_name, system_format, user_format, assistant_format, tool_format, function_format, observation_format, system, stop_word=None
+    template_name,
+    system_format,
+    user_format,
+    assistant_format,
+    tool_format,
+    function_format,
+    observation_format,
+    system,
+    stop_word=None,
 ):
     template_dict[template_name] = Template(
         template_name=template_name,

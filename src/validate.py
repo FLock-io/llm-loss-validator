@@ -265,11 +265,9 @@ def cli():
     is_flag=True,
     help="Run the script in local test mode to avoid submitting to the server",
 )
-
 @click.option(
     "--lora_only", type=bool, default=True, help="Only validate repo with lora weight"
 )
-
 def validate(
     model_name_or_path: str,
     base_model: str,
