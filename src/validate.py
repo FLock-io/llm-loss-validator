@@ -23,7 +23,7 @@ from pathlib import Path
 from core.collator import SFTDataCollator
 from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
-from core.hf_utils import download_lora_config, download_lora_repo
+from core.hf_utils import download_lora_repo
 from core.gpu_utils import get_gpu_type
 from core.constant import SUPPORTED_BASE_MODELS
 from core.exception import (
