@@ -34,6 +34,7 @@ from core.exception import (
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 from peft import PeftModel
+from core.cloudflare_utils import CloudStorage
 import sys
 
 load_dotenv()
@@ -90,12 +91,12 @@ def download_file(url):
         raise e
 
 
-def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
+def load_tokenizer(model_name_or_path: str, base_model: str) -> AutoTokenizer:
     tokenizer = AutoTokenizer.from_pretrained(
         model_name_or_path,
         use_fast=True,
     )
-    if "gemma" in model_name_or_path.lower():
+    if "gemma" in base_model.lower():
         tokenizer.add_special_tokens(
             {"additional_special_tokens": ["<start_of_turn>", "<end_of_turn>"]}
         )
@@ -113,9 +114,9 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
 
 
 def load_model(
-    model_name_or_path: str, lora_only: bool, revision: str, val_args: TrainingArguments
+        model_path: str, lora_only: bool, val_args: TrainingArguments
 ) -> Trainer:
-    logger.info(f"Loading model from base model: {model_name_or_path}")
+    logger.info(f"Loading model from base model: {model_path}")
 
     if val_args.use_cpu:
         torch_dtype = torch.float32
@@ -128,19 +129,19 @@ def load_model(
         device_map=None,
     )
     # check whether it is a lora weight
-    if download_lora_config(model_name_or_path, revision):
+
+    if os.path.isfile(os.path.join(model_path, "adapter_config.json")):
         logger.info("Repo is a lora weight, loading model with adapter weights")
-        with open("lora/adapter_config.json", "r") as f:
+        with open(os.path.join(model_path, "adapter_config.json"), "r") as f:
             adapter_config = json.load(f)
         base_model = adapter_config["base_model_name_or_path"]
         model = AutoModelForCausalLM.from_pretrained(
             base_model, token=HF_TOKEN, **model_kwargs
         )
-        # download the adapter weights
-        download_lora_repo(model_name_or_path, revision)
+
         model = PeftModel.from_pretrained(
             model,
-            "lora",
+            model_path,
             device_map=None,
         )
         model = model.merge_and_unload()
@@ -154,7 +155,7 @@ def load_model(
             return None
         logger.info("Repo is a full fine-tuned model, loading model directly")
         model = AutoModelForCausalLM.from_pretrained(
-            model_name_or_path, token=HF_TOKEN, **model_kwargs
+            model_path, token=HF_TOKEN, **model_kwargs
         )
 
     if "output_router_logits" in model.config.to_dict():
@@ -266,16 +267,22 @@ def cli():
     help="Run the script in local test mode to avoid submitting to the server",
 )
 def validate(
-    model_name_or_path: str,
-    base_model: str,
-    eval_file: str,
-    context_length: int,
-    max_params: int,
-    validation_args_file: str,
-    assignment_id: str = None,
-    local_test: bool = False,
-    lora_only: bool = True,
-    revision: str = "main",
+        base_model: str,
+        eval_file: str,
+        context_length: int,
+        max_params: int,
+        validation_args_file: str,
+        assignment_id: str = None,
+        local_test: bool = False,
+        lora_only: bool = True,
+        hg_repo_id: str = None,
+        revision: str = "main",
+        access_key: str = None,
+        secret_key: str = None,
+        endpoint_url: str = None,
+        bucket: str = None,
+        session_token: str = None,
+        prefix: str = None,
 ):
     if not local_test and assignment_id is None:
         raise ValueError(
@@ -291,11 +298,29 @@ def validate(
         val_args = parser.parse_json_file(json_file=validation_args_file)[0]
         gpu_type = get_gpu_type()
 
-        tokenizer = load_tokenizer(model_name_or_path)
-        eval_dataset = load_sft_dataset(
-            eval_file, context_length, template_name=base_model, tokenizer=tokenizer
-        )
-        model = load_model(model_name_or_path, lora_only, revision, val_args)
+        if hg_repo_id is None:
+            cf_storage = CloudStorage(access_key=access_key,
+                                      secret_key=secret_key,
+                                      endpoint_url=endpoint_url,
+                                      bucket=bucket,
+                                      session_token=session_token)
+            cf_download_result = cf_storage.download_files(prefix=prefix, local_dir="lora")
+            if not cf_download_result:
+                fed_ledger.mark_assignment_as_failed(assignment_id)
+                return
+            lora_model_path = os.path.join("lora", prefix)
+            tokenizer = load_tokenizer(model_name_or_path=lora_model_path, base_model=base_model)
+            eval_dataset = load_sft_dataset(
+                eval_file, context_length, template_name=base_model, tokenizer=tokenizer
+            )
+            model = load_model(lora_model_path, lora_only, val_args)
+        else:
+            tokenizer = load_tokenizer(hg_repo_id, base_model=base_model)
+            eval_dataset = load_sft_dataset(
+                eval_file, context_length, template_name=base_model, tokenizer=tokenizer
+            )
+            download_lora_repo(hg_repo_id, revision)
+            model = load_model("lora", lora_only, val_args)
         # if model is not loaded, mark the assignment as failed and return
         if model is None:
             fed_ledger.mark_assignment_as_failed(assignment_id)
@@ -393,10 +418,10 @@ def validate(
     "--lora_only", type=bool, default=True, help="Only validate repo with lora weight"
 )
 def loop(
-    validation_args_file: str,
-    task_id: str = None,
-    auto_clean_cache: bool = True,
-    lora_only: bool = True,
+        validation_args_file: str,
+        task_id: str = None,
+        auto_clean_cache: bool = True,
+        lora_only: bool = True,
 ):
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
@@ -440,11 +465,11 @@ def loop(
                     "detail": "Rate limit reached for validation assignment lookup: 1 per 3 minutes"
                 }:
                     time_since_last_success = (
-                        time.time() - last_successful_request_time[index]
+                            time.time() - last_successful_request_time[index]
                     )
                     if time_since_last_success < ASSIGNMENT_LOOKUP_INTERVAL:
                         time_to_sleep = (
-                            ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
+                                ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
                         )
                         logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
                         time.sleep(time_to_sleep)
@@ -458,25 +483,45 @@ def loop(
             continue
         resp = resp.json()
         eval_file = download_file(resp["data"]["validation_set_url"])
-        revision = resp["task_submission"]["data"].get("revision", "main")
         assignment_id = resp["id"]
 
         for attempt in range(3):
             try:
+
                 ctx = click.Context(validate)
-                ctx.invoke(
-                    validate,
-                    model_name_or_path=resp["task_submission"]["data"]["hg_repo_id"],
-                    base_model=resp["data"]["base_model"],
-                    eval_file=eval_file,
-                    context_length=resp["data"]["context_length"],
-                    max_params=resp["data"]["max_params"],
-                    validation_args_file=validation_args_file,
-                    assignment_id=resp["id"],
-                    local_test=False,
-                    lora_only=lora_only,
-                    revision=revision,
-                )
+                if "hg_repo_id" in resp["task_submission"]["data"]:
+                    revision = resp["task_submission"]["data"].get("revision", "main")
+                    ctx.invoke(
+                        validate,
+                        hg_repo_id=resp["task_submission"]["data"]["hg_repo_id"],
+                        base_model=resp["data"]["base_model"],
+                        eval_file=eval_file,
+                        context_length=resp["data"]["context_length"],
+                        max_params=resp["data"]["max_params"],
+                        validation_args_file=validation_args_file,
+                        assignment_id=resp["id"],
+                        local_test=False,
+                        lora_only=lora_only,
+                        revision=revision,
+                    )
+                else:
+                    ctx.invoke(
+                        validate,
+                        base_model=resp["data"]["base_model"],
+                        eval_file=eval_file,
+                        context_length=resp["data"]["context_length"],
+                        max_params=resp["data"]["max_params"],
+                        validation_args_file=validation_args_file,
+                        assignment_id=resp["id"],
+                        local_test=False,
+                        lora_only=lora_only,
+                        access_key=resp["data"]["access_key"],
+                        secret_key=resp["data"]["secret_key"],
+                        endpoint_url=resp["data"]["endpoint_url"],
+                        bucket=resp["data"]["bucket"],
+                        session_token=resp["data"]["session_token"],
+                        prefix=resp["data"]["prefix"],
+                    )
                 break  # Break the loop if no exception
             except KeyboardInterrupt:
                 # directly terminate the process if keyboard interrupt
