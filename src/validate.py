@@ -114,7 +114,7 @@ def load_tokenizer(model_name_or_path: str, base_model: str) -> AutoTokenizer:
 
 
 def load_model(
-        model_path: str, lora_only: bool, val_args: TrainingArguments
+    model_path: str, lora_only: bool, val_args: TrainingArguments
 ) -> Trainer:
     logger.info(f"Loading model from base model: {model_path}")
 
@@ -267,22 +267,22 @@ def cli():
     help="Run the script in local test mode to avoid submitting to the server",
 )
 def validate(
-        base_model: str,
-        eval_file: str,
-        context_length: int,
-        max_params: int,
-        validation_args_file: str,
-        assignment_id: str = None,
-        local_test: bool = False,
-        lora_only: bool = True,
-        hg_repo_id: str = None,
-        revision: str = "main",
-        access_key: str = None,
-        secret_key: str = None,
-        endpoint_url: str = None,
-        bucket: str = None,
-        session_token: str = None,
-        prefix: str = None,
+    base_model: str,
+    eval_file: str,
+    context_length: int,
+    max_params: int,
+    validation_args_file: str,
+    assignment_id: str = None,
+    local_test: bool = False,
+    lora_only: bool = True,
+    hg_repo_id: str = None,
+    revision: str = "main",
+    access_key: str = None,
+    secret_key: str = None,
+    endpoint_url: str = None,
+    bucket: str = None,
+    session_token: str = None,
+    prefix: str = None,
 ):
     if not local_test and assignment_id is None:
         raise ValueError(
@@ -299,17 +299,23 @@ def validate(
         gpu_type = get_gpu_type()
 
         if hg_repo_id is None:
-            cf_storage = CloudStorage(access_key=access_key,
-                                      secret_key=secret_key,
-                                      endpoint_url=endpoint_url,
-                                      bucket=bucket,
-                                      session_token=session_token)
-            cf_download_result = cf_storage.download_files(prefix=prefix, local_dir="lora")
+            cf_storage = CloudStorage(
+                access_key=access_key,
+                secret_key=secret_key,
+                endpoint_url=endpoint_url,
+                bucket=bucket,
+                session_token=session_token,
+            )
+            cf_download_result = cf_storage.download_files(
+                prefix=prefix, local_dir="lora"
+            )
             if not cf_download_result:
                 fed_ledger.mark_assignment_as_failed(assignment_id)
                 return
             lora_model_path = os.path.join("lora", prefix)
-            tokenizer = load_tokenizer(model_name_or_path=lora_model_path, base_model=base_model)
+            tokenizer = load_tokenizer(
+                model_name_or_path=lora_model_path, base_model=base_model
+            )
             eval_dataset = load_sft_dataset(
                 eval_file, context_length, template_name=base_model, tokenizer=tokenizer
             )
@@ -418,10 +424,10 @@ def validate(
     "--lora_only", type=bool, default=True, help="Only validate repo with lora weight"
 )
 def loop(
-        validation_args_file: str,
-        task_id: str = None,
-        auto_clean_cache: bool = True,
-        lora_only: bool = True,
+    validation_args_file: str,
+    task_id: str = None,
+    auto_clean_cache: bool = True,
+    lora_only: bool = True,
 ):
     if task_id is None:
         raise ValueError("task_id is required for asking assignment_id")
@@ -465,11 +471,11 @@ def loop(
                     "detail": "Rate limit reached for validation assignment lookup: 1 per 3 minutes"
                 }:
                     time_since_last_success = (
-                            time.time() - last_successful_request_time[index]
+                        time.time() - last_successful_request_time[index]
                     )
                     if time_since_last_success < ASSIGNMENT_LOOKUP_INTERVAL:
                         time_to_sleep = (
-                                ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
+                            ASSIGNMENT_LOOKUP_INTERVAL - time_since_last_success
                         )
                         logger.info(f"Sleeping for {int(time_to_sleep)} seconds")
                         time.sleep(time_to_sleep)
@@ -487,7 +493,6 @@ def loop(
 
         for attempt in range(3):
             try:
-
                 ctx = click.Context(validate)
                 if "hg_repo_id" in resp["task_submission"]["data"]:
                     revision = resp["task_submission"]["data"].get("revision", "main")
