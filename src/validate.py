@@ -245,7 +245,6 @@ def cli():
 
 
 @click.command()
-@click.option("--model_name_or_path", required=True, type=str, help="")
 @click.option("--base_model", required=True, type=str, help="")
 @click.option("--eval_file", default="./data/dummy_data.jsonl", type=str, help="")
 @click.option("--context_length", required=True, type=int)
@@ -306,6 +305,7 @@ def validate(
                 bucket=bucket,
                 session_token=session_token,
             )
+            cf_storage.initialize()
             cf_download_result = cf_storage.download_files(
                 prefix=prefix, local_dir="lora"
             )
