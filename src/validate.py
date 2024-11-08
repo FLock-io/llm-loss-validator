@@ -35,9 +35,10 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 from peft import PeftModel
 import sys
+import math
 
 load_dotenv()
-TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 10))
+TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 3))
 ASSIGNMENT_LOOKUP_INTERVAL = 60 * 3  # 3 minutes
 FLOCK_API_KEY = os.getenv("FLOCK_API_KEY")
 if FLOCK_API_KEY is None:
@@ -333,6 +334,11 @@ def validate(
         if local_test:
             logger.info("The model can be correctly validated by validators.")
             return
+        # sometimes the loss might not be a valid float
+        if isinstance(eval_loss, float) and (
+            math.isnan(eval_loss) or math.isinf(eval_loss)
+        ):
+            eval_loss = LOSS_FOR_MODEL_PARAMS_EXCEED
         resp = fed_ledger.submit_validation_result(
             assignment_id=assignment_id, loss=eval_loss, gpu_type=gpu_type
         )
