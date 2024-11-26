@@ -60,15 +60,24 @@ def function_formatter(tool_calls, function_slots=DEFAULT_FUNCTION_SLOTS) -> str
         tool_calls = [tool_calls]  # parallel function calls
 
     for tool_call in tool_calls:
-        if not isinstance(tool_call, dict) or "name" not in tool_call or "arguments" not in tool_call:
+        if (
+            not isinstance(tool_call, dict)
+            or "name" not in tool_call
+            or "arguments" not in tool_call
+        ):
             raise ValueError(f"Invalid tool call format: {tool_call}")
-        
+
         try:
             functions.append(
-                (tool_call["name"], json.dumps(tool_call["arguments"], ensure_ascii=False))
+                (
+                    tool_call["name"],
+                    json.dumps(tool_call["arguments"], ensure_ascii=False),
+                )
             )
         except (TypeError, ValueError) as e:
-            raise ValueError(f"Failed to serialize arguments for tool {tool_call['name']}: {e}")
+            raise ValueError(
+                f"Failed to serialize arguments for tool {tool_call['name']}: {e}"
+            )
 
     elements = []
     for name, arguments in functions:
