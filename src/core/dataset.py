@@ -54,10 +54,9 @@ class UnifiedSFTDataset(Dataset):
         conversations = data["conversations"]
 
         input_buffer = ""
-        for i in range(len(conversations)):
-            role = conversations[i]["role"]
-            content = conversations[i]["content"].strip()
-
+        for conversation in conversations:
+            role = conversation["role"]
+            content = conversation["content"].strip()
             if role != "assistant":
                 if role == "user":
                     human = self.user_format.format(
