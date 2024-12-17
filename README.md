@@ -7,6 +7,7 @@ Validator that computes the validation loss for a huggingface-compatible LLM
 We recommand you to use `conda` to manage the python env for this repo.
 
 ```bash
+cd $HOME/llm-loss-validator
 conda create -n llm-loss-validator python==3.10.12
 conda activate llm-loss-validator
 pip install -r requirements.txt
@@ -19,7 +20,7 @@ pip install -r requirements.txt
 If you wish to continuously receive task assignments, you should use the following command:
 
 ```bash
-cd /src
+cd $HOME/llm-loss-validator/src
 CUDA_VISIBLE_DEVICES=0 \
 bash start.sh \
 --hf_token your_hf_token \
@@ -43,7 +44,7 @@ bash start.sh \
 #### With CPU
 
 ```bash
-cd /src
+cd $HOME/llm-loss-validator/src
 FLOCK_API_KEY="<your-api-key>" python validate.py validate \
 --model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
 --base_model qwen1.5 \
@@ -57,7 +58,7 @@ FLOCK_API_KEY="<your-api-key>" python validate.py validate \
 #### With GPU
 
 ```bash
-cd /src
+cd $HOME/llm-loss-validator/src
 CUDA_VISIBLE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py validate \
 --model_name_or_path Qwen/Qwen1.5-1.8B-Chat \
 --base_model qwen1.5 \
