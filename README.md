@@ -4,7 +4,7 @@ Validator that computes the validation loss for a huggingface-compatible LLM
 
 ## Environment Setup
 
-We recommand you to use `conda` to manage the python env for this repo.
+We [recommend](https://github.com/2000kazim) you to use `conda` to manage the python env for this repo.
 
 ```bash
 conda create -n llm-loss-validator python==3.10.12
@@ -33,7 +33,7 @@ bash start.sh \
 - `CUDA_VISIBLE_DEVICES=0`: Specifies which GPU to use. `0` indicates the first GPU. Adjust this based on your available GPUs.
 - `--hf_token`: Your Hugging Face token, required for accessing certain models. This should token should have write access.
 - `--flock_api_key`: Your FLock API key.
-- `--task_id`: The ID of the task you want to validate. If you are validating multiple tasks, you can pass a list eg. if you are validating tasks 8 and 9, you can pass `--task_id 8,9`
+- `--task_id`: The ID of the task you want to validate. If you are validating multiple tasks, you can pass a list [e.g.](https://github.com/2000kazim) if you are validating tasks 8 and 9, you can pass `--task_id 8,9`
 - `--validation_args_file`: The path to the validation arguments file.
 - `--auto_clean_cache`: A flag to determine whether to automatically clean the model cache.
 - `--lora_only`: A flag to indicate whether to validate only repositories with LoRA (Low-Rank Adaptation) weights. `True` means only LoRA weights will be validated. This is useful for validators with limited network bandwidth, as LoRA weights are significantly smaller (10-500 MiB) compared to full model files (>10 GiB).
