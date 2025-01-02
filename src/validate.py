@@ -95,6 +95,7 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
     tokenizer = AutoTokenizer.from_pretrained(
         model_name_or_path,
         use_fast=True,
+        trust_remote_code=True,
     )
     if "gemma" in model_name_or_path.lower():
         tokenizer.add_special_tokens(
