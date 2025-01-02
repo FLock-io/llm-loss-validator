@@ -10,6 +10,7 @@ We recommand you to use `conda` to manage the python env for this repo.
 conda create -n llm-loss-validator python==3.10.12
 conda activate llm-loss-validator
 pip install -r requirements.txt
+pip install flash-attn --no-build-isolation
 ```
 
 ## How to run validation script

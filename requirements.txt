@@ -17,4 +17,3 @@ peft>=0.10.0
 gitpython
 pre-commit
 pytest
-flash-attn
