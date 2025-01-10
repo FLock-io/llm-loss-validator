@@ -82,3 +82,26 @@ CUDA_VISIBLE_DEVICES=0 FLOCK_API_KEY="<your-api-key>" python validate.py validat
 --assignment_id <assignment-id> \
 --validation_args_file validation_config.json.example
 ```
+
+## Optional: Installing FlashAttention
+
+FlashAttention is a fast and memory-efficient attention mechanism that can be beneficial for large models. However, it can be tricky to compile depending on your GPU setup.
+
+### Advantages
+- **Memory Efficiency**: FlashAttention reduces memory usage significantly, allowing for longer sequence lengths.
+- **Speed**: It provides a speedup over standard attention mechanisms, especially on GPUs with high memory bandwidth.
+
+### Installation Guide
+1. **Ensure CUDA Toolkit is Installed**: FlashAttention requires CUDA 11.7 or above.
+2. **Install FlashAttention**:
+   ```bash
+   pip install flash-attn --no-build-isolation
+   ```
+   Alternatively, compile from source:
+   ```bash
+   git clone https://github.com/Dao-AILab/flash-attention
+   cd flash-attention
+   python setup.py install
+   ```
+
+For more detailed instructions and advanced usage, please refer to the [FlashAttention GitHub repository](https://github.com/Dao-AILab/flash-attention).
