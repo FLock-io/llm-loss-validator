@@ -103,5 +103,8 @@ FlashAttention is a fast and memory-efficient attention mechanism that can be be
    cd flash-attention
    python setup.py install
    ```
+### Using FlashAttention 2
+
+For models like Qwen with automatically support flash attention, just installing the birary suffices. For other models that support FlashAttention 2, you can enable it by adding `attn_implementation="flash_attention_2"` in the `AutoModelForCausalLM.from_pretrained()` method in [`validate.py`](src/validate.py)
 
 For more detailed instructions and advanced usage, please refer to the [FlashAttention GitHub repository](https://github.com/Dao-AILab/flash-attention).
