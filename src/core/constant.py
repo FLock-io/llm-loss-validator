@@ -97,4 +97,11 @@ SUPPORTED_BASE_MODELS = [
     "microsoft/Phi-3.5-mini-instruct",
     "microsoft/Phi-3-mini-4k-instruct",
     "microsoft/Phi-3-medium-4k-instruct",
+    # deepseek
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
 ]
