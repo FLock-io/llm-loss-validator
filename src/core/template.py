@@ -170,3 +170,15 @@ register_template(
     system=None,
     stop_word="<|end|>",
 )
+
+register_template(
+    template_name="phi4",
+    system_format=None,
+    user_format="<|user|>\n{content}<|end|>\n<|assistant|>",
+    assistant_format="{content}<|end|>\n",
+    tool_format="<|tool|>{content}<|/tool|>",
+    function_format= "<|tool_call|>{content}<|/tool_call|>",
+    observation_format="<|tool|>\n{content}<|end|>\n<|assistant|>",
+    system=None,
+    stop_word="<|end|>",
+)

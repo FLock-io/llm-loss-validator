@@ -1,5 +1,4 @@
 from huggingface_hub import HfApi
-from huggingface_hub.utils._errors import EntryNotFoundError
 from loguru import logger
 
 api = HfApi()
@@ -13,9 +12,12 @@ def download_lora_config(repo_id: str, revision: str) -> bool:
             local_dir="lora",
             revision=revision,
         )
-    except EntryNotFoundError:
-        logger.info("No adapter_config.json found in the repo, assuming full model")
-        return False
+    except Exception as e:
+        if "adapter_config.json" in str(e):
+            logger.info("No adapter_config.json found in the repo, assuming full model")
+            return False
+        else:
+            raise  # Re-raise the exception if it's not related to the missing file
     return True
 
 
