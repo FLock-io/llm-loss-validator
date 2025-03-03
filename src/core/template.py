@@ -177,7 +177,7 @@ register_template(
     user_format="<|user|>\n{content}<|end|>\n<|assistant|>",
     assistant_format="{content}<|end|>\n",
     tool_format="<|tool|>{content}<|/tool|>",
-    function_format= "<|tool_call|>{content}<|/tool_call|>",
+    function_format="<|tool_call|>{content}<|/tool_call|>",
     observation_format="<|tool|>\n{content}<|end|>\n<|assistant|>",
     system=None,
     stop_word="<|end|>",

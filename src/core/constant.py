@@ -97,7 +97,7 @@ SUPPORTED_BASE_MODELS = [
     "microsoft/Phi-3.5-mini-instruct",
     "microsoft/Phi-3-mini-4k-instruct",
     "microsoft/Phi-3-medium-4k-instruct",
-    #phi4
+    # phi4
     "microsoft/Phi-4-mini-instruct",
     "microsoft/phi-4",
     # deepseek
