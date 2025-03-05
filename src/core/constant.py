@@ -58,6 +58,7 @@ SUPPORTED_BASE_MODELS = [
     "mistralai/Mistral-7B-Instruct-v0.1",
     "mistralai/Mistral-7B-Instruct-v0.2",
     "mistralai/Mistral-7B-Instruct-v0.3",
+    "mistralai/Ministral-8B-Instruct-2410",
     # mixtral
     "mistralai/Mixtral-8x7B-v0.1",
     "mistralai/Mixtral-8x7B-Instruct-v0.1",
@@ -97,6 +98,9 @@ SUPPORTED_BASE_MODELS = [
     "microsoft/Phi-3.5-mini-instruct",
     "microsoft/Phi-3-mini-4k-instruct",
     "microsoft/Phi-3-medium-4k-instruct",
+    # phi4
+    "microsoft/Phi-4-mini-instruct",
+    "microsoft/phi-4",
     # deepseek
     "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
     "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
