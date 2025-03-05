@@ -58,6 +58,7 @@ SUPPORTED_BASE_MODELS = [
     "mistralai/Mistral-7B-Instruct-v0.1",
     "mistralai/Mistral-7B-Instruct-v0.2",
     "mistralai/Mistral-7B-Instruct-v0.3",
+    "mistralai/Ministral-8B-Instruct-2410",
     # mixtral
     "mistralai/Mixtral-8x7B-v0.1",
     "mistralai/Mixtral-8x7B-Instruct-v0.1",
