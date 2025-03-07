@@ -40,12 +40,12 @@ MODELS=(
 # Run validation for each model
 for MODEL in "${MODELS[@]}"; do
     echo "Validating model: $MODEL"
-    
+
     cd src
 
     # Determine the base model based on the model name using the dictionary
     BASE_MODEL=${MODEL_MAP[$MODEL]}
-    
+
     if [ -z "$BASE_MODEL" ]; then
         echo "Unknown model: $MODEL"
         continue
