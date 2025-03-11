@@ -15,11 +15,10 @@ declare -A MODEL_MAP=(
     ["mistralai/Ministral-8B-Instruct-2410"]="mistral"
     ["01-ai/Yi-1.5-6B-Chat"]="yi"
     ["meta-llama/Llama-3.1-8B"]="llama3"
-    ["jfranklin-foundry/task-1-microsoft-Phi-3-mini-4k-instruct"]="phi3"
-    ["jack8885/task-1-microsoft-Phi-3.5-mini-instruct"]="phi3"
-    ["nannnzk/task-1-Qwen-Qwen2.5-7B-Instruct"]="qwen1.5"
-    ["Howell2333/task-1-google-gemma-7b"]="gemma"
-    ["jake-dcg/task-2-google-gemma-2-2b-it"]="gemma"
+    ["random-sequence/task-1-microsoft-Phi-3-mini-4k-instruct"]="phi3"
+    ["random-sequence/task-1-microsoft-Phi-3.5-mini-instruct"]="phi3"
+    ["random-sequence/task-1-Qwen-Qwen2.5-7B-Instruct"]="qwen1.5"
+    ["random-sequence/task-2-google-gemma-2-2b-it"]="gemma"
 )
 
 # Define models to validate - mix of full models and LORA
@@ -30,11 +29,10 @@ MODELS=(
     "mistralai/Ministral-8B-Instruct-2410"
     "01-ai/Yi-1.5-6B-Chat"
     "meta-llama/Llama-3.1-8B"
-    "jfranklin-foundry/task-1-microsoft-Phi-3-mini-4k-instruct"
-    "jack8885/task-1-microsoft-Phi-3.5-mini-instruct"
-    "nannnzk/task-1-Qwen-Qwen2.5-7B-Instruct"
-    "Howell2333/task-1-google-gemma-7b"
-    "jake-dcg/task-2-google-gemma-2-2b-it"
+    "random-sequence/task-1-microsoft-Phi-3-mini-4k-instruct"
+    "random-sequence/task-1-microsoft-Phi-3.5-mini-instruct"
+    "random-sequence/task-1-Qwen-Qwen2.5-7B-Instruct"
+    "random-sequence/task-2-google-gemma-2-2b-it"
 )
 
 # Run validation for each model
@@ -56,7 +54,7 @@ for MODEL in "${MODELS[@]}"; do
     --base_model "$BASE_MODEL" \
     --eval_file ./data/dummy_data.jsonl \
     --context_length 4096 \
-    --max_params 7000000000 \
+    --max_params 9000000000 \
     --local_test \
     --lora_only False \
     --validation_args_file validation_config.json.example 2>&1)
