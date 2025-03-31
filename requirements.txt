@@ -16,3 +16,4 @@ python-dotenv
 peft>=0.10.0
 gitpython
 pre-commit
+boto3
