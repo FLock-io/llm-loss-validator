@@ -128,35 +128,43 @@ def load_model(
         use_cache=False,
         device_map=None,
     )
+    
+    
     # check whether it is a lora weight
-    if download_lora_config(model_name_or_path, revision):
-        logger.info("Repo is a lora weight, loading model with adapter weights")
-        with open("lora/adapter_config.json", "r") as f:
-            adapter_config = json.load(f)
-        base_model = adapter_config["base_model_name_or_path"]
-        model = AutoModelForCausalLM.from_pretrained(
-            base_model, token=HF_TOKEN, **model_kwargs
-        )
-        # download the adapter weights
-        download_lora_repo(model_name_or_path, revision)
-        model = PeftModel.from_pretrained(
-            model,
-            "lora",
-            device_map=None,
-        )
-        model = model.merge_and_unload()
-        logger.info("Loaded model with adapter weights")
-    # assuming full fine-tuned model
-    else:
-        if lora_only:
-            logger.error(
-                "Repo is not a lora weight, but lora_only flag is set to True. Will mark the assignment as failed"
-            )
-            return None
+    if "unsloth" in model_name_or_path.lower():
         logger.info("Repo is a full fine-tuned model, loading model directly")
         model = AutoModelForCausalLM.from_pretrained(
             model_name_or_path, token=HF_TOKEN, **model_kwargs
         )
+    else:
+        if download_lora_config(model_name_or_path, revision):
+            logger.info("Repo is a lora weight, loading model with adapter weights")
+            with open("lora/adapter_config.json", "r") as f:
+                adapter_config = json.load(f)
+            base_model = adapter_config["base_model_name_or_path"]
+            model = AutoModelForCausalLM.from_pretrained(
+                base_model, token=HF_TOKEN, **model_kwargs
+            )
+            # download the adapter weights
+            download_lora_repo(model_name_or_path, revision)
+            model = PeftModel.from_pretrained(
+                model,
+                "lora",
+                device_map=None,
+            )
+            model = model.merge_and_unload()
+            logger.info("Loaded model with adapter weights")
+        # assuming full fine-tuned model
+        else:
+            if lora_only:
+                logger.error(
+                    "Repo is not a lora weight, but lora_only flag is set to True. Will mark the assignment as failed"
+                )
+                return None
+            logger.info("Repo is a full fine-tuned model, loading model directly")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name_or_path, token=HF_TOKEN, **model_kwargs
+            )
 
     if "output_router_logits" in model.config.to_dict():
         logger.info("set output_router_logits as True")
