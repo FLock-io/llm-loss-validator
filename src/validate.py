@@ -128,8 +128,7 @@ def load_model(
         use_cache=False,
         device_map=None,
     )
-    
-    
+
     # check whether it is a lora weight
     if "unsloth" in model_name_or_path.lower():
         logger.info("Repo is a full fine-tuned model, loading model directly")
