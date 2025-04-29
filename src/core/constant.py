@@ -38,7 +38,7 @@ SUPPORTED_BASE_MODELS = [
     "Qwen/Qwen2.5-32B-Instruct",
     "Qwen/Qwen2.5-72B",
     "Qwen/Qwen2.5-72B-Instruct",
-    #Qwen3
+    # Qwen3
     "Qwen/Qwen3-0.6B",
     "Qwen/Qwen3-1.7B",
     "Qwen/Qwen3-4B",
