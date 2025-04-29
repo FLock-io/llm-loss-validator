@@ -10,6 +10,7 @@ pip install -r requirements.txt > /dev/null 2>&1
 
 declare -A MODEL_MAP=(
     ["Qwen/Qwen1.5-1.8B-Chat"]="qwen1.5"
+    ["Qwen/Qwen3-0.6B"]="qwen1.5"
     ["google/gemma-2b"]="gemma"
     ["microsoft/Phi-3-mini-4k-instruct"]="phi3"
     ["mistralai/Ministral-8B-Instruct-2410"]="mistral"
@@ -24,6 +25,7 @@ declare -A MODEL_MAP=(
 # Define models to validate - mix of full models and LORA
 MODELS=(
     "Qwen/Qwen1.5-1.8B-Chat"
+    "Qwen/Qwen3-0.6B"
     "google/gemma-2b"
     "microsoft/Phi-3-mini-4k-instruct"
     "mistralai/Ministral-8B-Instruct-2410"

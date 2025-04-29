@@ -38,6 +38,13 @@ SUPPORTED_BASE_MODELS = [
     "Qwen/Qwen2.5-32B-Instruct",
     "Qwen/Qwen2.5-72B",
     "Qwen/Qwen2.5-72B-Instruct",
+    #Qwen3
+    "Qwen/Qwen3-0.6B",
+    "Qwen/Qwen3-1.7B",
+    "Qwen/Qwen3-4B",
+    "Qwen/Qwen3-8B",
+    "Qwen/Qwen3-14B",
+    "Qwen/Qwen3-32B",
     # Yi
     "01-ai/Yi-6B",
     "01-ai/Yi-6B-Chat",
