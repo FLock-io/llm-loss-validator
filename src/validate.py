@@ -330,7 +330,7 @@ def validate(
                         )
                         if not local_test:
                             fed_ledger.mark_assignment_as_failed(assignment_id)
-
+                            return
                 else:
                     logger.warning(
                         f"LoRA model {model_name_or_path} does not have 'base_model_name_or_path' "
