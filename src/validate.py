@@ -298,20 +298,25 @@ def validate(
         # Determine if the tokenizer is from the approved tokenizers
         tokenizer_model_path = model_name_or_path
         adapter_config_path = Path("lora/adapter_config.json")
-        
+
         is_lora = download_lora_config(model_name_or_path, revision)
 
         if is_lora and adapter_config_path.exists():
-            logger.info(f"Model {model_name_or_path} is a LoRA model. Checking its base model for tokenizer.")
+            logger.info(
+                f"Model {model_name_or_path} is a LoRA model. Checking its base model for tokenizer."
+            )
             try:
                 with open(adapter_config_path, "r") as f:
                     adapter_config = json.load(f)
-                
+
                 lora_base_model_path = adapter_config.get("base_model_name_or_path")
-                
+
                 if lora_base_model_path:
                     # Case-insensitive check for prefixes
-                    if any(prefix.lower() in lora_base_model_path.lower() for prefix in APPROVED_TOKENIZER_BASE_PREFIXES):
+                    if any(
+                        prefix.lower() in lora_base_model_path.lower()
+                        for prefix in APPROVED_TOKENIZER_BASE_PREFIXES
+                    ):
                         logger.info(
                             f"LoRA's base model {lora_base_model_path} is from an approved provider. "
                             f"Using it for tokenizer."
@@ -333,10 +338,14 @@ def validate(
                     )
 
             except json.JSONDecodeError:
-                logger.error(f"Failed to decode adapter_config.json for {model_name_or_path}. Using LoRA's original tokenizer path.")
+                logger.error(
+                    f"Failed to decode adapter_config.json for {model_name_or_path}. Using LoRA's original tokenizer path."
+                )
 
             except Exception as e:
-                logger.error(f"Error reading adapter_config.json for {model_name_or_path}: {e}. Using LoRA's original tokenizer path.")
+                logger.error(
+                    f"Error reading adapter_config.json for {model_name_or_path}: {e}. Using LoRA's original tokenizer path."
+                )
 
         elif is_lora and not adapter_config_path.exists():
             logger.error(
@@ -346,7 +355,7 @@ def validate(
             if not local_test:
                 fed_ledger.mark_assignment_as_failed(assignment_id)
             return
-        else: # Not a LoRA model (is_lora is False)
+        else:  # Not a LoRA model (is_lora is False)
             logger.info(
                 f"Model {model_name_or_path} is not a LoRA model (or its configuration is inaccessible). "
                 f"Using its own tokenizer: {model_name_or_path}."
