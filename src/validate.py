@@ -313,10 +313,7 @@ def validate(
 
                 if lora_base_model_path:
                     # Case-insensitive check for prefixes
-                    if any(
-                        prefix.lower() in lora_base_model_path.lower()
-                        for prefix in APPROVED_TOKENIZER_BASE_PREFIXES
-                    ):
+                    if any(lora_base_model_path.lower().startswith(prefix.lower()) for prefix in APPROVED_TOKENIZER_BASE_PREFIXES):
                         logger.info(
                             f"LoRA's base model {lora_base_model_path} is from an approved provider. "
                             f"Using it for tokenizer."
