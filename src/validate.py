@@ -25,7 +25,7 @@ from core.dataset import UnifiedSFTDataset
 from core.template import template_dict
 from core.hf_utils import download_lora_config, download_lora_repo
 from core.gpu_utils import get_gpu_type
-from core.constant import SUPPORTED_BASE_MODELS
+from core.constant import SUPPORTED_BASE_MODELS, APPROVED_TOKENIZER_BASE_PREFIXES
 from core.exception import (
     handle_os_error,
     handle_runtime_error,
@@ -295,7 +295,64 @@ def validate(
         val_args = parser.parse_json_file(json_file=validation_args_file)[0]
         gpu_type = get_gpu_type()
 
-        tokenizer = load_tokenizer(model_name_or_path)
+        # Determine if the tokenizer is from the approved tokenizers
+        tokenizer_model_path = model_name_or_path
+        adapter_config_path = Path("lora/adapter_config.json")
+        
+        is_lora = download_lora_config(model_name_or_path, revision)
+
+        if is_lora and adapter_config_path.exists():
+            logger.info(f"Model {model_name_or_path} is a LoRA model. Checking its base model for tokenizer.")
+            try:
+                with open(adapter_config_path, "r") as f:
+                    adapter_config = json.load(f)
+                
+                lora_base_model_path = adapter_config.get("base_model_name_or_path")
+                
+                if lora_base_model_path:
+                    # Case-insensitive check for prefixes
+                    if any(prefix.lower() in lora_base_model_path.lower() for prefix in APPROVED_TOKENIZER_BASE_PREFIXES):
+                        logger.info(
+                            f"LoRA's base model {lora_base_model_path} is from an approved provider. "
+                            f"Using it for tokenizer."
+                        )
+                        tokenizer_model_path = lora_base_model_path
+                    else:
+                        logger.error(
+                            f"LoRA's base model {lora_base_model_path} is not in APPROVED_TOKENIZER_BASE_PREFIXES. "
+                            f"Marking assignment {assignment_id} as failed. "
+                            f"Proceeding with LoRA's original tokenizer path: {model_name_or_path}."
+                        )
+                        if not local_test:
+                            fed_ledger.mark_assignment_as_failed(assignment_id)
+
+                else:
+                    logger.warning(
+                        f"LoRA model {model_name_or_path} does not have 'base_model_name_or_path' "
+                        f"in its adapter_config.json. Using LoRA's original tokenizer path: {model_name_or_path}."
+                    )
+
+            except json.JSONDecodeError:
+                logger.error(f"Failed to decode adapter_config.json for {model_name_or_path}. Using LoRA's original tokenizer path.")
+
+            except Exception as e:
+                logger.error(f"Error reading adapter_config.json for {model_name_or_path}: {e}. Using LoRA's original tokenizer path.")
+
+        elif is_lora and not adapter_config_path.exists():
+            logger.error(
+                f"Model {model_name_or_path} is identified as LoRA, but its adapter_config.json was not found at {adapter_config_path}. "
+                f"Marking assignment {assignment_id} as failed."
+            )
+            if not local_test:
+                fed_ledger.mark_assignment_as_failed(assignment_id)
+            return
+        else: # Not a LoRA model (is_lora is False)
+            logger.info(
+                f"Model {model_name_or_path} is not a LoRA model (or its configuration is inaccessible). "
+                f"Using its own tokenizer: {model_name_or_path}."
+            )
+
+        tokenizer = load_tokenizer(tokenizer_model_path)
         eval_dataset = load_sft_dataset(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
