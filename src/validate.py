@@ -239,6 +239,25 @@ def clean_model_cache(
         logger.error(f"Failed to clean up the local model cache: {e}")
 
 
+def check_if_thinking_mode(eval_file: str) -> bool:
+    """
+    Check if the evaluation file is in thinking mode.
+
+    Parameters:
+    - eval_file (str): The path to the evaluation file.
+
+    Returns:
+    - bool: True if the evaluation file is in thinking mode, False otherwise.
+    """
+    with open(eval_file, "r", encoding="utf8") as f:
+        data_list = [json.loads(d) for d in f.readlines()]
+        for data in data_list:
+            output_content = data["conversations"][-1]["content"]
+            if output_content.startswith("<think>"):
+                return True
+    return False
+
+
 @click.group()
 def cli():
     pass
@@ -296,6 +315,18 @@ def validate(
         gpu_type = get_gpu_type()
 
         tokenizer = load_tokenizer(model_name_or_path)
+        if "Qwen3" in model_name_or_path:
+            thinking_mode = check_if_thinking_mode(eval_file)
+            if not thinking_mode:
+                logger.info(
+                    "The dataset is not in thinking mode, setting no_think mode"
+                )
+                base_model = "qwen3"
+
+            # template for thinking mode is the same as qwen1.5
+            else:
+                logger.info("The dataset is in thinking mode, setting thinking mode")
+                base_model = "qwen1.5"
         eval_dataset = load_sft_dataset(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )

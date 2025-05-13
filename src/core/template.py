@@ -67,6 +67,19 @@ register_template(
     stop_word="<|im_end|>",
 )
 
+# define qwen3 as the no thinking template for Qwen3
+register_template(
+    template_name="qwen3",
+    system_format="<|im_start|>system\n{content}<|im_end|>\n",
+    user_format="<|im_start|>user\n{content}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n",
+    assistant_format="{content}<|im_end|>\n",
+    tool_format="{content}",
+    function_format="{content}",
+    observation_format="<|im_start|>tool\n{content}<im_end>\n<|im_start|>assistant\n<think>\n\n</think>\n",
+    system="You are a helpful assistant.",
+    stop_word="<|im_end|>",
+)
+
 register_template(
     template_name="yi",
     system_format="<|im_start|>system\n{content}<|im_end|>\n",
