@@ -36,7 +36,7 @@ from client.fed_ledger import FedLedger
 from peft import PeftModel
 import sys
 import math
-import numpy as np
+
 
 load_dotenv()
 TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 3))
