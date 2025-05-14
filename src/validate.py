@@ -309,18 +309,20 @@ def validate(
                 try:
                     with open(adapter_config_path, "r") as f:
                         adapter_config = json.load(f)
-                    
+
                     lora_base_model_path = adapter_config.get("base_model_name_or_path")
 
-                    if not lora_base_model_path: # Check if base_model_name_or_path is missing
+                    if (
+                        not lora_base_model_path
+                    ):  # Check if base_model_name_or_path is missing
                         logger.error(
                             f"LoRA model {model_name_or_path} does not specify 'base_model_name_or_path' "
                             f"in its adapter_config.json. Marking assignment {assignment_id} as failed."
                         )
                         if not local_test:
                             fed_ledger.mark_assignment_as_failed(assignment_id)
-                        return # Exit validate function
-                    
+                        return  # Exit validate function
+
                     # Check if the extracted base model path is in SUPPORTED_BASE_MODELS
                     if lora_base_model_path in SUPPORTED_BASE_MODELS:
                         logger.info(
@@ -345,7 +347,7 @@ def validate(
                     if not local_test:
                         fed_ledger.mark_assignment_as_failed(assignment_id)
                     return
-                except Exception as e: # Catch any other generic exception during adapter_config processing
+                except Exception as e:  # Catch any other generic exception during adapter_config processing
                     logger.error(
                         f"Error processing adapter_config.json for {model_name_or_path}: {e}. "
                         f"Marking assignment {assignment_id} as failed."
@@ -353,7 +355,7 @@ def validate(
                     if not local_test:
                         fed_ledger.mark_assignment_as_failed(assignment_id)
                     return
-            else: # is_lora is True, but adapter_config.json does not exist
+            else:  # is_lora is True, but adapter_config.json does not exist
                 logger.error(
                     f"Model {model_name_or_path} is identified as LoRA, but its adapter_config.json was not downloaded or found at {adapter_config_path}. "
                     f"This could be due to an issue with 'download_lora_config' or the repository structure for the LoRA model. "
@@ -362,7 +364,7 @@ def validate(
                 if not local_test:
                     fed_ledger.mark_assignment_as_failed(assignment_id)
                 return
-        else: # Not a LoRA model
+        else:  # Not a LoRA model
             logger.info(
                 f"Model {model_name_or_path} is not identified as a LoRA model. "
                 f"Using its own path for tokenizer: {model_name_or_path}."
