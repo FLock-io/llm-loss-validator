@@ -36,6 +36,7 @@ from client.fed_ledger import FedLedger
 from peft import PeftModel
 import sys
 import math
+import numpy as np
 
 load_dotenv()
 TIME_SLEEP = int(os.getenv("TIME_SLEEP", 60 * 3))
@@ -299,6 +300,33 @@ def validate(
         eval_dataset = load_sft_dataset(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
+        
+        total_bytes = 0
+        total_target_tokens = 0
+        logger.info("Calculating total bytes and target tokens in the evaluation dataset...")
+        for i in range(len(eval_dataset)):
+            item = eval_dataset[i]
+            target_ids = [id for id, mask in zip(item['input_ids'], item['target_mask']) if mask == 1]
+            if target_ids:
+                target_text = tokenizer.decode(target_ids, skip_special_tokens=True)
+                total_bytes += len(target_text.encode('utf-8'))
+                total_target_tokens += len(target_ids) 
+        
+        if total_bytes == 0:
+             logger.warning("Total bytes in the evaluation dataset is 0. Cannot calculate BPC. Check dataset processing.")
+             eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED
+             bpc = float('inf')
+             bppl = float('inf')
+             token_byte_ratio = float('inf')
+        else:
+            logger.info(f"Total target bytes (B): {total_bytes}")
+            logger.info(f"Total target tokens (T): {total_target_tokens}")
+            token_byte_ratio = total_target_tokens / total_bytes
+            logger.info(f"Token/Byte ratio (T/B): {token_byte_ratio:.4f}")
+            # Define a reasonable threshold, e.g., if T/B < 0.1 it might be suspicious
+            if token_byte_ratio < 0.1:
+                 logger.warning(f"Token/Byte ratio ({token_byte_ratio:.4f}) is unusually low. Potential manipulation detected.")
+                 
         model = load_model(model_name_or_path, lora_only, revision, val_args)
         # if model is not loaded, mark the assignment as failed and return
         if model is None:
@@ -331,19 +359,58 @@ def validate(
             data_collator=data_collator,
         )
 
+        logger.info("Starting evaluation...")
         eval_result = trainer.evaluate()
         eval_loss = eval_result["eval_loss"]
-        logger.info("evaluate result is %s" % str(eval_result))
+        logger.info("Raw evaluation result: %s" % str(eval_result))
+        logger.info(f"Average token-level loss (nats): {eval_loss}")
+
         if local_test:
-            logger.info("The model can be correctly validated by validators.")
+            logger.info("The model can be correctly validated by validators (raw loss).")
+            # Calculate and log BPC/bPPL even for local tests
+            if total_bytes > 0 and isinstance(eval_loss, float) and not (math.isnan(eval_loss) or math.isinf(eval_loss)):
+                nll_token_nats_total = eval_loss * total_target_tokens
+                nll_token_bits_total = nll_token_nats_total / math.log(2)
+                bpc = nll_token_bits_total / total_bytes
+                bppl = math.pow(2, bpc) if not math.isinf(bpc) else float('inf')
+                logger.info(f"Calculated BPC: {bpc}")
+                logger.info(f"Calculated bPPL: {bppl}")
+                logger.info(f"Token/Byte Ratio: {token_byte_ratio:.4f}")
+            else:
+                 logger.warning("Could not calculate BPC/bPPL for local test due to zero bytes or invalid loss.")
             return
-        # sometimes the loss might not be a valid float
-        if isinstance(eval_loss, float) and (
-            math.isnan(eval_loss) or math.isinf(eval_loss)
-        ):
-            eval_loss = LOSS_FOR_MODEL_PARAMS_EXCEED
+
+        eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED # Default to high loss
+
+        if total_bytes > 0 and isinstance(eval_loss, float) and not (math.isnan(eval_loss) or math.isinf(eval_loss)):
+            # Calculate total NLL in nats: average_loss * num_target_tokens
+            nll_token_nats_total = eval_loss * total_target_tokens
+            # Convert total NLL nats to bits
+            nll_token_bits_total = nll_token_nats_total / math.log(2)
+            # Calculate BPC
+            bpc = nll_token_bits_total / total_bytes
+            # Calculate bPPL 
+            bppl = math.pow(2, bpc) if not math.isinf(bpc) else float('inf')
+            
+            logger.info(f"Total NLL (nats): {nll_token_nats_total}")
+            logger.info(f"Total NLL (bits): {nll_token_bits_total}")
+            logger.info(f"Calculated BPC: {bpc}")
+            logger.info(f"Calculated bPPL: {bppl}")
+            
+            # Use BPC as the loss value to submit
+            eval_loss_to_submit = bpc
+            
+        elif total_bytes == 0:
+             logger.error("Total bytes is 0, submitting high loss.")
+             eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED
+        elif not isinstance(eval_loss, float) or math.isnan(eval_loss) or math.isinf(eval_loss):
+             logger.error(f"Invalid eval_loss ({eval_loss}), submitting high loss.")
+             eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED
+
         resp = fed_ledger.submit_validation_result(
-            assignment_id=assignment_id, loss=eval_loss, gpu_type=gpu_type
+            assignment_id=assignment_id, 
+            loss=eval_loss_to_submit,  # Submit BPC as loss
+            gpu_type=gpu_type
         )
         # check response is 200
         if resp.status_code != 200:
@@ -357,7 +424,7 @@ def validate(
                 fed_ledger.mark_assignment_as_failed(assignment_id)
             return
         logger.info(
-            f"Successfully submitted validation result for assignment {assignment_id}"
+            f"Successfully submitted validation result (BPC: {eval_loss_to_submit}) for assignment {assignment_id}"
         )
 
     # raise for exceptions, will handle at `loop` level
