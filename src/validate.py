@@ -292,10 +292,14 @@ def validate(
 
     model = None
     eval_dataset = None
-    bpc_metrics_results = {'bpc': float('inf'), 'bppl': float('inf'), 'nll_token_nats_total': float('nan'), 'nll_token_bits_total': float('nan')}
-    token_byte_ratio_value = float('inf')
-    eval_loss = float('nan') # Initialize eval_loss
-
+    bpc_metrics_results = {
+        "bpc": float("inf"),
+        "bppl": float("inf"),
+        "nll_token_nats_total": float("nan"),
+        "nll_token_bits_total": float("nan"),
+    }
+    token_byte_ratio_value = float("inf")
+    eval_loss = float("nan")  # Initialize eval_loss
 
     try:
         fed_ledger = FedLedger(FLOCK_API_KEY)
@@ -333,7 +337,9 @@ def validate(
         else:
             logger.info(f"Total target bytes (B): {total_bytes}")
             logger.info(f"Total target tokens (T): {total_target_tokens}")
-            token_byte_ratio_value = get_token_byte_ratio(total_target_tokens, total_bytes)
+            token_byte_ratio_value = get_token_byte_ratio(
+                total_target_tokens, total_bytes
+            )
             logger.info(f"Token/Byte ratio (T/B): {token_byte_ratio_value:.4f}")
             if token_byte_ratio_value < 0.1:
                 logger.warning(
@@ -378,16 +384,18 @@ def validate(
 
         logger.info("Raw evaluation result: %s" % str(eval_result))
 
-        if total_bytes > 0 :
-            bpc_metrics_results = calculate_bpc_bppl_metrics(eval_loss, total_target_tokens, total_bytes)
+        if total_bytes > 0:
+            bpc_metrics_results = calculate_bpc_bppl_metrics(
+                eval_loss, total_target_tokens, total_bytes
+            )
 
-        is_bpc_valid = not math.isinf(bpc_metrics_results['bpc'])
+        is_bpc_valid = not math.isinf(bpc_metrics_results["bpc"])
 
         if local_test:
             logger.info(
                 "The model can be correctly validated by validators (raw loss)."
             )
-            if not is_bpc_valid: # If BPC is inf
+            if not is_bpc_valid:  # If BPC is inf
                 logger.warning(
                     "Could not calculate BPC/bPPL for local test due to zero bytes or invalid loss."
                 )
@@ -400,20 +408,25 @@ def validate(
                 total_target_tokens=total_target_tokens,
                 total_bytes=total_bytes,
                 vocab_size=tokenizer.vocab_size,
-                model_params_m= (sum(p.numel() for p in model.parameters()) / 1e6) if model else float('nan')
+                model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
+                if model
+                else float("nan"),
             )
             return
 
         eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED  # Default to high loss
 
         if is_bpc_valid:
-            eval_loss_to_submit = bpc_metrics_results['bpc']
-        else: 
+            eval_loss_to_submit = bpc_metrics_results["bpc"]
+        else:
             if total_bytes == 0:
                 logger.error("Total bytes is 0, submitting high loss.")
-            elif not isinstance(eval_loss, numbers.Real) or math.isnan(eval_loss) or math.isinf(eval_loss):
+            elif (
+                not isinstance(eval_loss, numbers.Real)
+                or math.isnan(eval_loss)
+                or math.isinf(eval_loss)
+            ):
                 logger.error(f"Invalid eval_loss ({eval_loss}), submitting high loss.")
-
 
         resp = fed_ledger.submit_validation_result(
             assignment_id=assignment_id,
@@ -438,7 +451,9 @@ def validate(
                 total_target_tokens=total_target_tokens,
                 total_bytes=total_bytes,
                 vocab_size=tokenizer.vocab_size,
-                model_params_m= (sum(p.numel() for p in model.parameters()) / 1e6) if model else float('nan')
+                model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
+                if model
+                else float("nan"),
             )
             return
         logger.info(
@@ -452,19 +467,27 @@ def validate(
             total_target_tokens=total_target_tokens,
             total_bytes=total_bytes,
             vocab_size=tokenizer.vocab_size,
-            model_params_m= (sum(p.numel() for p in model.parameters()) / 1e6) if model else float('nan')
+            model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
+            if model
+            else float("nan"),
         )
 
     except Exception as e:
         _log_summary_table(
             model_name_or_path=model_name_or_path,
-            eval_loss=eval_loss, 
-            bpc_metrics=bpc_metrics_results, 
-            token_byte_ratio=token_byte_ratio_value, 
-            total_target_tokens=total_target_tokens if 'total_target_tokens' in locals() else 0,
-            total_bytes=total_bytes if 'total_bytes' in locals() else 0,
-            vocab_size=tokenizer.vocab_size if 'tokenizer' in locals() and hasattr(tokenizer, 'vocab_size') else 'N/A',
-            model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6) if model else float('nan')
+            eval_loss=eval_loss,
+            bpc_metrics=bpc_metrics_results,
+            token_byte_ratio=token_byte_ratio_value,
+            total_target_tokens=total_target_tokens
+            if "total_target_tokens" in locals()
+            else 0,
+            total_bytes=total_bytes if "total_bytes" in locals() else 0,
+            vocab_size=tokenizer.vocab_size
+            if "tokenizer" in locals() and hasattr(tokenizer, "vocab_size")
+            else "N/A",
+            model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
+            if model
+            else float("nan"),
         )
         raise e
     finally:
