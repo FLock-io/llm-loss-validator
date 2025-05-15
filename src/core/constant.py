@@ -109,14 +109,3 @@ SUPPORTED_BASE_MODELS = [
     "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
     "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
 ]
-
-APPROVED_TOKENIZER_BASE_PREFIXES = [
-    "Qwen/",
-    "01-ai/",
-    "mistralai/",
-    "google/",
-    "HuggingFaceH4/",
-    "meta-llama/",
-    "microsoft/",
-    "deepseek-ai/",
-]

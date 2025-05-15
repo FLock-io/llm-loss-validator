@@ -114,7 +114,7 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
 
 
 def load_model(
-    model_name_or_path: str, lora_only: bool, revision: str, val_args: TrainingArguments
+    model_name_or_path: str, lora_only: bool, revision: str, val_args: TrainingArguments, cached_lora: bool
 ) -> Trainer:
     logger.info(f"Loading model from base model: {model_name_or_path}")
 
@@ -129,7 +129,7 @@ def load_model(
         device_map=None,
     )
     # check whether it is a lora weight
-    if download_lora_config(model_name_or_path, revision):
+    if cached_lora:
         logger.info("Repo is a lora weight, loading model with adapter weights")
         with open("lora/adapter_config.json", "r") as f:
             adapter_config = json.load(f)
@@ -299,6 +299,7 @@ def validate(
 
         # Determine the correct tokenizer path, especially for LoRA models
         is_lora = download_lora_config(model_name_or_path, revision)
+        cached_lora = is_lora
         adapter_config_path = Path("lora/adapter_config.json")
 
         if is_lora:
@@ -374,7 +375,7 @@ def validate(
         eval_dataset = load_sft_dataset(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
-        model = load_model(model_name_or_path, lora_only, revision, val_args)
+        model = load_model(model_name_or_path, lora_only, revision, val_args, cached_lora)
         # if model is not loaded, mark the assignment as failed and return
         if model is None:
             fed_ledger.mark_assignment_as_failed(assignment_id)
