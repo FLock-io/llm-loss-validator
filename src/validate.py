@@ -1,4 +1,5 @@
 import json
+import numbers
 import os
 import time
 import shutil
@@ -31,6 +32,8 @@ from core.exception import (
     handle_runtime_error,
     handle_value_error,
 )
+from core.loss import calculate_bpc_bppl_metrics, get_token_byte_ratio
+from core.log_utils import _log_summary_table
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
 from peft import PeftModel
@@ -289,6 +292,10 @@ def validate(
 
     model = None
     eval_dataset = None
+    bpc_metrics_results = {'bpc': float('inf'), 'bppl': float('inf'), 'nll_token_nats_total': float('nan'), 'nll_token_bits_total': float('nan')}
+    token_byte_ratio_value = float('inf')
+    eval_loss = float('nan') # Initialize eval_loss
+
 
     try:
         fed_ledger = FedLedger(FLOCK_API_KEY)
@@ -323,18 +330,14 @@ def validate(
                 "Total bytes in the evaluation dataset is 0. Cannot calculate BPC. Check dataset processing."
             )
             eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED
-            bpc = float("inf")
-            bppl = float("inf")
-            token_byte_ratio = float("inf")
         else:
             logger.info(f"Total target bytes (B): {total_bytes}")
             logger.info(f"Total target tokens (T): {total_target_tokens}")
-            token_byte_ratio = total_target_tokens / total_bytes
-            logger.info(f"Token/Byte ratio (T/B): {token_byte_ratio:.4f}")
-            # Define a reasonable threshold, e.g., if T/B < 0.1 it might be suspicious
-            if token_byte_ratio < 0.1:
+            token_byte_ratio_value = get_token_byte_ratio(total_target_tokens, total_bytes)
+            logger.info(f"Token/Byte ratio (T/B): {token_byte_ratio_value:.4f}")
+            if token_byte_ratio_value < 0.1:
                 logger.warning(
-                    f"Token/Byte ratio ({token_byte_ratio:.4f}) is unusually low. Potential manipulation detected."
+                    f"Token/Byte ratio ({token_byte_ratio_value:.4f}) is unusually low. Potential manipulation detected."
                 )
 
         model = load_model(model_name_or_path, lora_only, revision, val_args)
@@ -372,66 +375,45 @@ def validate(
         logger.info("Starting evaluation...")
         eval_result = trainer.evaluate()
         eval_loss = eval_result["eval_loss"]
+
         logger.info("Raw evaluation result: %s" % str(eval_result))
-        logger.info(f"Average token-level loss (nats): {eval_loss}")
+
+        if total_bytes > 0 :
+            bpc_metrics_results = calculate_bpc_bppl_metrics(eval_loss, total_target_tokens, total_bytes)
+
+        is_bpc_valid = not math.isinf(bpc_metrics_results['bpc'])
 
         if local_test:
             logger.info(
                 "The model can be correctly validated by validators (raw loss)."
             )
-            # Calculate and log BPC/bPPL even for local tests
-            if (
-                total_bytes > 0
-                and isinstance(eval_loss, float)
-                and not (math.isnan(eval_loss) or math.isinf(eval_loss))
-            ):
-                nll_token_nats_total = eval_loss * total_target_tokens
-                nll_token_bits_total = nll_token_nats_total / math.log(2)
-                bpc = nll_token_bits_total / total_bytes
-                bppl = math.pow(2, bpc) if not math.isinf(bpc) else float("inf")
-                logger.info(f"Calculated BPC: {bpc}")
-                logger.info(f"Calculated bPPL: {bppl}")
-                logger.info(f"Token/Byte Ratio: {token_byte_ratio:.4f}")
-            else:
+            if not is_bpc_valid: # If BPC is inf
                 logger.warning(
                     "Could not calculate BPC/bPPL for local test due to zero bytes or invalid loss."
                 )
+            # The _log_summary_table will display 'inf' or 'nan' for BPC/bPPL if not valid.
+            _log_summary_table(
+                model_name_or_path=model_name_or_path,
+                eval_loss=eval_loss,
+                bpc_metrics=bpc_metrics_results,
+                token_byte_ratio=token_byte_ratio_value,
+                total_target_tokens=total_target_tokens,
+                total_bytes=total_bytes,
+                vocab_size=tokenizer.vocab_size,
+                model_params_m= (sum(p.numel() for p in model.parameters()) / 1e6) if model else float('nan')
+            )
             return
 
         eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED  # Default to high loss
 
-        if (
-            total_bytes > 0
-            and isinstance(eval_loss, float)
-            and not (math.isnan(eval_loss) or math.isinf(eval_loss))
-        ):
-            # Calculate total NLL in nats: average_loss * num_target_tokens
-            nll_token_nats_total = eval_loss * total_target_tokens
-            # Convert total NLL nats to bits
-            nll_token_bits_total = nll_token_nats_total / math.log(2)
-            # Calculate BPC
-            bpc = nll_token_bits_total / total_bytes
-            # Calculate bPPL
-            bppl = math.pow(2, bpc) if not math.isinf(bpc) else float("inf")
+        if is_bpc_valid:
+            eval_loss_to_submit = bpc_metrics_results['bpc']
+        else: 
+            if total_bytes == 0:
+                logger.error("Total bytes is 0, submitting high loss.")
+            elif not isinstance(eval_loss, numbers.Real) or math.isnan(eval_loss) or math.isinf(eval_loss):
+                logger.error(f"Invalid eval_loss ({eval_loss}), submitting high loss.")
 
-            logger.info(f"Total NLL (nats): {nll_token_nats_total}")
-            logger.info(f"Total NLL (bits): {nll_token_bits_total}")
-            logger.info(f"Calculated BPC: {bpc}")
-            logger.info(f"Calculated bPPL: {bppl}")
-
-            # Use BPC as the loss value to submit
-            eval_loss_to_submit = bpc
-
-        elif total_bytes == 0:
-            logger.error("Total bytes is 0, submitting high loss.")
-            eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED
-        elif (
-            not isinstance(eval_loss, float)
-            or math.isnan(eval_loss)
-            or math.isinf(eval_loss)
-        ):
-            logger.error(f"Invalid eval_loss ({eval_loss}), submitting high loss.")
-            eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED
 
         resp = fed_ledger.submit_validation_result(
             assignment_id=assignment_id,
@@ -448,13 +430,42 @@ def validate(
                     "Validation assignment is not in validating status anymore, marking it as failed"
                 )
                 fed_ledger.mark_assignment_as_failed(assignment_id)
+            _log_summary_table(
+                model_name_or_path=model_name_or_path,
+                eval_loss=eval_loss,
+                bpc_metrics=bpc_metrics_results,
+                token_byte_ratio=token_byte_ratio_value,
+                total_target_tokens=total_target_tokens,
+                total_bytes=total_bytes,
+                vocab_size=tokenizer.vocab_size,
+                model_params_m= (sum(p.numel() for p in model.parameters()) / 1e6) if model else float('nan')
+            )
             return
         logger.info(
             f"Successfully submitted validation result (BPC: {eval_loss_to_submit}) for assignment {assignment_id}"
         )
+        _log_summary_table(
+            model_name_or_path=model_name_or_path,
+            eval_loss=eval_loss,
+            bpc_metrics=bpc_metrics_results,
+            token_byte_ratio=token_byte_ratio_value,
+            total_target_tokens=total_target_tokens,
+            total_bytes=total_bytes,
+            vocab_size=tokenizer.vocab_size,
+            model_params_m= (sum(p.numel() for p in model.parameters()) / 1e6) if model else float('nan')
+        )
 
-    # raise for exceptions, will handle at `loop` level
     except Exception as e:
+        _log_summary_table(
+            model_name_or_path=model_name_or_path,
+            eval_loss=eval_loss, 
+            bpc_metrics=bpc_metrics_results, 
+            token_byte_ratio=token_byte_ratio_value, 
+            total_target_tokens=total_target_tokens if 'total_target_tokens' in locals() else 0,
+            total_bytes=total_bytes if 'total_bytes' in locals() else 0,
+            vocab_size=tokenizer.vocab_size if 'tokenizer' in locals() and hasattr(tokenizer, 'vocab_size') else 'N/A',
+            model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6) if model else float('nan')
+        )
         raise e
     finally:
         # offload the model to save memory
