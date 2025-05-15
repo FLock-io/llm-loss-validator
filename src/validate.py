@@ -114,7 +114,11 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
 
 
 def load_model(
-    model_name_or_path: str, lora_only: bool, revision: str, val_args: TrainingArguments, cached_lora: bool
+    model_name_or_path: str,
+    lora_only: bool,
+    revision: str,
+    val_args: TrainingArguments,
+    cached_lora: bool,
 ) -> Trainer:
     logger.info(f"Loading model from base model: {model_name_or_path}")
 
@@ -375,7 +379,9 @@ def validate(
         eval_dataset = load_sft_dataset(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
-        model = load_model(model_name_or_path, lora_only, revision, val_args, cached_lora)
+        model = load_model(
+            model_name_or_path, lora_only, revision, val_args, cached_lora
+        )
         # if model is not loaded, mark the assignment as failed and return
         if model is None:
             fed_ledger.mark_assignment_as_failed(assignment_id)
