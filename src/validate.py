@@ -114,7 +114,11 @@ def load_tokenizer(model_name_or_path: str) -> AutoTokenizer:
 
 
 def load_model(
-    model_name_or_path: str, lora_only: bool, revision: str, val_args: TrainingArguments
+    model_name_or_path: str,
+    lora_only: bool,
+    revision: str,
+    val_args: TrainingArguments,
+    cached_lora: bool,
 ) -> Trainer:
     logger.info(f"Loading model from base model: {model_name_or_path}")
 
@@ -129,7 +133,7 @@ def load_model(
         device_map=None,
     )
     # check whether it is a lora weight
-    if download_lora_config(model_name_or_path, revision):
+    if cached_lora:
         logger.info("Repo is a lora weight, loading model with adapter weights")
         with open("lora/adapter_config.json", "r") as f:
             adapter_config = json.load(f)
@@ -295,11 +299,89 @@ def validate(
         val_args = parser.parse_json_file(json_file=validation_args_file)[0]
         gpu_type = get_gpu_type()
 
-        tokenizer = load_tokenizer(model_name_or_path)
+        tokenizer_model_path = model_name_or_path
+
+        # Determine the correct tokenizer path, especially for LoRA models
+        is_lora = download_lora_config(model_name_or_path, revision)
+        cached_lora = is_lora
+        adapter_config_path = Path("lora/adapter_config.json")
+
+        if is_lora:
+            if adapter_config_path.exists():
+                logger.info(
+                    f"Model {model_name_or_path} is a LoRA model. Validating its base model for tokenizer."
+                )
+                try:
+                    with open(adapter_config_path, "r") as f:
+                        adapter_config = json.load(f)
+
+                    lora_base_model_path = adapter_config.get("base_model_name_or_path")
+
+                    if (
+                        not lora_base_model_path
+                    ):  # Check if base_model_name_or_path is missing
+                        logger.error(
+                            f"LoRA model {model_name_or_path} does not specify 'base_model_name_or_path' "
+                            f"in its adapter_config.json. Marking assignment {assignment_id} as failed."
+                        )
+                        if not local_test:
+                            fed_ledger.mark_assignment_as_failed(assignment_id)
+                        return  # Exit validate function
+
+                    # Check if the extracted base model path is in SUPPORTED_BASE_MODELS
+                    if lora_base_model_path in SUPPORTED_BASE_MODELS:
+                        logger.info(
+                            f"LoRA's base model '{lora_base_model_path}' is in SUPPORTED_BASE_MODELS. "
+                            f"Using it for tokenizer."
+                        )
+                        tokenizer_model_path = lora_base_model_path
+                    else:
+                        logger.error(
+                            f"LoRA's base model '{lora_base_model_path}' is not in SUPPORTED_BASE_MODELS. "
+                            f"Marking assignment {assignment_id} as failed."
+                        )
+                        if not local_test:
+                            fed_ledger.mark_assignment_as_failed(assignment_id)
+                        return
+
+                except json.JSONDecodeError:
+                    logger.error(
+                        f"Failed to decode adapter_config.json for {model_name_or_path}. "
+                        f"Marking assignment {assignment_id} as failed."
+                    )
+                    if not local_test:
+                        fed_ledger.mark_assignment_as_failed(assignment_id)
+                    return
+                except Exception as e:  # Catch any other generic exception during adapter_config processing
+                    logger.error(
+                        f"Error processing adapter_config.json for {model_name_or_path}: {e}. "
+                        f"Marking assignment {assignment_id} as failed."
+                    )
+                    if not local_test:
+                        fed_ledger.mark_assignment_as_failed(assignment_id)
+                    return
+            else:  # is_lora is True, but adapter_config.json does not exist
+                logger.error(
+                    f"Model {model_name_or_path} is identified as LoRA, but its adapter_config.json was not downloaded or found at {adapter_config_path}. "
+                    f"This could be due to an issue with 'download_lora_config' or the repository structure for the LoRA model. "
+                    f"Marking assignment {assignment_id} as failed."
+                )
+                if not local_test:
+                    fed_ledger.mark_assignment_as_failed(assignment_id)
+                return
+        else:  # Not a LoRA model
+            logger.info(
+                f"Model {model_name_or_path} is not identified as a LoRA model. "
+                f"Using its own path for tokenizer: {model_name_or_path}."
+            )
+
+        tokenizer = load_tokenizer(tokenizer_model_path)
         eval_dataset = load_sft_dataset(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
-        model = load_model(model_name_or_path, lora_only, revision, val_args)
+        model = load_model(
+            model_name_or_path, lora_only, revision, val_args, cached_lora
+        )
         # if model is not loaded, mark the assignment as failed and return
         if model is None:
             fed_ledger.mark_assignment_as_failed(assignment_id)
