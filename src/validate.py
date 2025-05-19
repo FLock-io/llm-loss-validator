@@ -32,7 +32,11 @@ from core.exception import (
     handle_runtime_error,
     handle_value_error,
 )
-from core.loss import calculate_bpc_bppl_metrics, get_token_byte_ratio, calculate_bytes_and_tokens
+from core.loss import (
+    calculate_bpc_bppl_metrics,
+    get_token_byte_ratio,
+    calculate_bytes_and_tokens,
+)
 from core.log_utils import _log_summary_table
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
@@ -392,7 +396,9 @@ def validate(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
 
-        total_bytes, total_target_tokens = calculate_bytes_and_tokens(eval_dataset, tokenizer, logger)
+        total_bytes, total_target_tokens = calculate_bytes_and_tokens(
+            eval_dataset, tokenizer, logger
+        )
 
         if total_bytes == 0:
             logger.warning(

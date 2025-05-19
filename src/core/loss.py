@@ -79,9 +79,7 @@ def calculate_bytes_and_tokens(eval_dataset, tokenizer, logger):
     for i in range(len(eval_dataset)):
         item = eval_dataset[i]
         target_ids = [
-            id
-            for id, mask in zip(item["input_ids"], item["target_mask"])
-            if mask == 1
+            id for id, mask in zip(item["input_ids"], item["target_mask"]) if mask == 1
         ]
         if target_ids:
             target_text = tokenizer.decode(target_ids, skip_special_tokens=True)
