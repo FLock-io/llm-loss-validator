@@ -32,7 +32,7 @@ from core.exception import (
     handle_runtime_error,
     handle_value_error,
 )
-from core.loss import calculate_bpc_bppl_metrics, get_token_byte_ratio
+from core.loss import calculate_bpc_bppl_metrics, get_token_byte_ratio, calculate_bytes_and_tokens
 from core.log_utils import _log_summary_table
 from tenacity import retry, stop_after_attempt, wait_exponential
 from client.fed_ledger import FedLedger
@@ -392,22 +392,7 @@ def validate(
             eval_file, context_length, template_name=base_model, tokenizer=tokenizer
         )
 
-        total_bytes = 0
-        total_target_tokens = 0
-        logger.info(
-            "Calculating total bytes and target tokens in the evaluation dataset..."
-        )
-        for i in range(len(eval_dataset)):
-            item = eval_dataset[i]
-            target_ids = [
-                id
-                for id, mask in zip(item["input_ids"], item["target_mask"])
-                if mask == 1
-            ]
-            if target_ids:
-                target_text = tokenizer.decode(target_ids, skip_special_tokens=True)
-                total_bytes += len(target_text.encode("utf-8"))
-                total_target_tokens += len(target_ids)
+        total_bytes, total_target_tokens = calculate_bytes_and_tokens(eval_dataset, tokenizer, logger)
 
         if total_bytes == 0:
             logger.warning(
@@ -473,6 +458,19 @@ def validate(
 
         is_bpc_valid = not math.isinf(bpc_metrics_results["bpc"])
 
+        _log_summary_table(
+            model_name_or_path=model_name_or_path,
+            eval_loss=eval_loss,
+            bpc_metrics=bpc_metrics_results,
+            token_byte_ratio=token_byte_ratio_value,
+            total_target_tokens=total_target_tokens,
+            total_bytes=total_bytes,
+            vocab_size=tokenizer.vocab_size,
+            model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
+            if model
+            else float("nan"),
+        )
+
         if local_test:
             logger.info(
                 "The model can be correctly validated by validators (raw loss)."
@@ -481,19 +479,6 @@ def validate(
                 logger.warning(
                     "Could not calculate BPC/bPPL for local test due to zero bytes or invalid loss."
                 )
-            # The _log_summary_table will display 'inf' or 'nan' for BPC/bPPL if not valid.
-            _log_summary_table(
-                model_name_or_path=model_name_or_path,
-                eval_loss=eval_loss,
-                bpc_metrics=bpc_metrics_results,
-                token_byte_ratio=token_byte_ratio_value,
-                total_target_tokens=total_target_tokens,
-                total_bytes=total_bytes,
-                vocab_size=tokenizer.vocab_size,
-                model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
-                if model
-                else float("nan"),
-            )
             return
 
         eval_loss_to_submit = LOSS_FOR_MODEL_PARAMS_EXCEED  # Default to high loss
@@ -525,52 +510,12 @@ def validate(
                     "Validation assignment is not in validating status anymore, marking it as failed"
                 )
                 fed_ledger.mark_assignment_as_failed(assignment_id)
-            _log_summary_table(
-                model_name_or_path=model_name_or_path,
-                eval_loss=eval_loss,
-                bpc_metrics=bpc_metrics_results,
-                token_byte_ratio=token_byte_ratio_value,
-                total_target_tokens=total_target_tokens,
-                total_bytes=total_bytes,
-                vocab_size=tokenizer.vocab_size,
-                model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
-                if model
-                else float("nan"),
-            )
             return
         logger.info(
             f"Successfully submitted validation result (BPC: {eval_loss_to_submit}) for assignment {assignment_id}"
         )
-        _log_summary_table(
-            model_name_or_path=model_name_or_path,
-            eval_loss=eval_loss,
-            bpc_metrics=bpc_metrics_results,
-            token_byte_ratio=token_byte_ratio_value,
-            total_target_tokens=total_target_tokens,
-            total_bytes=total_bytes,
-            vocab_size=tokenizer.vocab_size,
-            model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
-            if model
-            else float("nan"),
-        )
 
     except Exception as e:
-        _log_summary_table(
-            model_name_or_path=model_name_or_path,
-            eval_loss=eval_loss,
-            bpc_metrics=bpc_metrics_results,
-            token_byte_ratio=token_byte_ratio_value,
-            total_target_tokens=total_target_tokens
-            if "total_target_tokens" in locals()
-            else 0,
-            total_bytes=total_bytes if "total_bytes" in locals() else 0,
-            vocab_size=tokenizer.vocab_size
-            if "tokenizer" in locals() and hasattr(tokenizer, "vocab_size")
-            else "N/A",
-            model_params_m=(sum(p.numel() for p in model.parameters()) / 1e6)
-            if model
-            else float("nan"),
-        )
         raise e
     finally:
         # offload the model to save memory

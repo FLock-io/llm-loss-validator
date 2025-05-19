@@ -57,3 +57,34 @@ def get_token_byte_ratio(total_target_tokens, total_bytes):
     if total_bytes == 0:
         return float("inf")
     return total_target_tokens / total_bytes
+
+
+def calculate_bytes_and_tokens(eval_dataset, tokenizer, logger):
+    """
+    Calculates total bytes and target tokens in the evaluation dataset.
+
+    Args:
+        eval_dataset: The evaluation dataset.
+        tokenizer: The tokenizer.
+        logger: The logger instance.
+
+    Returns:
+        tuple: A tuple containing total_bytes and total_target_tokens.
+    """
+    total_bytes = 0
+    total_target_tokens = 0
+    logger.info(
+        "Calculating total bytes and target tokens in the evaluation dataset..."
+    )
+    for i in range(len(eval_dataset)):
+        item = eval_dataset[i]
+        target_ids = [
+            id
+            for id, mask in zip(item["input_ids"], item["target_mask"])
+            if mask == 1
+        ]
+        if target_ids:
+            target_text = tokenizer.decode(target_ids, skip_special_tokens=True)
+            total_bytes += len(target_text.encode("utf-8"))
+            total_target_tokens += len(target_ids)
+    return total_bytes, total_target_tokens
