@@ -14,8 +14,10 @@ def calculate_bpc_bppl_metrics(eval_loss, total_target_tokens, total_bytes):
     Returns:
         dict: A dictionary containing 'bpc', 'bppl', 'nll_token_nats_total',
               'nll_token_bits_total'.
-              Returns {'bpc': float('inf'), 'bppl': float('inf'), ...} if total_bytes is 0
-              or eval_loss is invalid.
+              Returns values like {'bpc': float('inf'), 'bppl': float('inf'), ...}
+              if total_bytes is 0, eval_loss is invalid (non-real, NaN, or infinity).
+              'bppl' will also be float('inf') if bpc is float('inf') or if
+              math.pow(2, bpc) calculation overflows for a large finite bpc.
     """
     if (
         total_bytes == 0
@@ -33,7 +35,14 @@ def calculate_bpc_bppl_metrics(eval_loss, total_target_tokens, total_bytes):
     nll_token_nats_total = eval_loss * total_target_tokens
     nll_token_bits_total = nll_token_nats_total / math.log(2)
     bpc = nll_token_bits_total / total_bytes
-    bppl = math.pow(2, bpc) if not math.isinf(bpc) else float("inf")
+
+    if math.isinf(bpc):
+        bppl = float("inf")
+    else:
+        try:
+            bppl = math.pow(2, bpc)
+        except OverflowError:
+            bppl = float("inf")
 
     return {
         "bpc": bpc,
