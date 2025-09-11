@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict
+from constant import MODEL_TEMPLATE_MAP
 
 
 @dataclass
@@ -182,3 +183,6 @@ register_template(
     system=None,
     stop_word="<|end|>",
 )
+
+for model_name, template_name in MODEL_TEMPLATE_MAP.items():
+    template_dict[model_name] = template_dict[template_name]
