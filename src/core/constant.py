@@ -69,7 +69,6 @@ MODEL_TEMPLATE_MAP = {
     "Qwen/Qwen2.5-72B": "qwen1.5",
     "Qwen/Qwen2.5-72B-Instruct": "qwen1.5",
     "Qwen/Qwen3-4B-Instruct": "qwen1.5",
-
     # Yi
     "01-ai/Yi-1.5-6B": "yi",
     "01-ai/Yi-1.5-6B-Chat": "yi",
@@ -77,16 +76,13 @@ MODEL_TEMPLATE_MAP = {
     "01-ai/Yi-1.5-9B-Chat": "yi",
     "01-ai/Yi-1.5-34B": "yi",
     "01-ai/Yi-1.5-34B-Chat": "yi",
-
     # Mistral
     "mistralai/Mistral-7B-v0.3": "mistral",
     "mistralai/Mistral-7B-Instruct-v0.3": "mistral",
     "mistralai/Ministral-8B-Instruct-2410": "mistral",
-
     # Mixtral
     "mistralai/Mixtral-8x7B-v0.1": "mixtral",
     "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral",
-
     # Gemma 2
     "google/gemma-2-2b": "gemma",
     "google/gemma-2-9b": "gemma",
@@ -94,7 +90,6 @@ MODEL_TEMPLATE_MAP = {
     "google/gemma-2-2b-it": "gemma",
     "google/gemma-2-9b-it": "gemma",
     "google/gemma-2-27b-it": "gemma",
-
     # LLaMA 3 + 3.1
     "meta-llama/Meta-Llama-3-8B": "llama3",
     "meta-llama/Meta-Llama-3-8B-Instruct": "llama3",
@@ -104,12 +99,10 @@ MODEL_TEMPLATE_MAP = {
     "meta-llama/Meta-Llama-3.1-8B-Instruct": "llama3",
     "meta-llama/Meta-Llama-3.1-70B": "llama3",
     "meta-llama/Meta-Llama-3.1-70B-Instruct": "llama3",
-
     # Phi 3
     "microsoft/Phi-3.5-mini-instruct": "phi3",
     "microsoft/Phi-3-mini-4k-instruct": "phi3",
     "microsoft/Phi-3-medium-4k-instruct": "phi3",
-
     # Phi 4
     "microsoft/Phi-4-mini-instruct": "phi4",
     "microsoft/phi-4": "phi4",
