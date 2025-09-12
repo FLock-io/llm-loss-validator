@@ -68,7 +68,7 @@ MODEL_TEMPLATE_MAP = {
     "Qwen/Qwen2.5-32B-Instruct": "qwen1.5",
     "Qwen/Qwen2.5-72B": "qwen1.5",
     "Qwen/Qwen2.5-72B-Instruct": "qwen1.5",
-    "Qwen/Qwen3-4B-Instruct": "qwen1.5",
+    "Qwen/Qwen3-4B-Instruct": "qwen3",
     # Yi
     "01-ai/Yi-1.5-6B": "yi",
     "01-ai/Yi-1.5-6B-Chat": "yi",

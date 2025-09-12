@@ -69,6 +69,25 @@ register_template(
 )
 
 register_template(
+    template_name="qwen3",
+    system_format="<|im_start|>system\n{content}<|im_end|>\n",
+    user_format="<|im_start|>user\n{content}<|im_end|>\n<|im_start|>assistant\n",
+    assistant_format="{content}<|im_end|>\n",
+    tool_format = (
+        "# Tools\n\n"
+        "You may call one or more functions to assist with the user query.\n\n"
+        "You are provided with function signatures within <tools></tools> XML tags:\n"
+        "<tools>\n{content}\n</tools>\n\n"
+        "For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n"
+        "<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call>"
+    ),
+    function_format="<tool_call>\n{content}\n</tool_call><|im_end|>\n",
+    observation_format="<|im_start|>user\n<tool_response>\n{content}\n</tool_response><|im_end|>\n<|im_start|>assistant\n",
+    system="You are a helpful assistant.",
+    stop_word="<|im_end|>",
+)
+
+register_template(
     template_name="yi",
     system_format="<|im_start|>system\n{content}<|im_end|>\n",
     user_format="<|im_start|>user\n{content}<|im_end|>\n<|im_start|>assistant\n",
