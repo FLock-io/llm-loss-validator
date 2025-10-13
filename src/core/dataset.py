@@ -43,13 +43,15 @@ class UnifiedSFTDataset(Dataset):
                 target_mask = [0] * len(input_ids)
 
         # setting tool information
-        if "tools" in data.keys() and data["tools"]:
+        if "tools" in data.keys():
             tools = json.loads(data["tools"])
-            tool_prompt = tool_formater(tools)
-            tool_text = self.tool_format.format(content=tool_prompt)
-            tool_tokens = self.tokenizer.encode(tool_text, add_special_tokens=False)
-            input_ids = input_ids + tool_tokens
-            target_mask = target_mask + [0] * len(tool_tokens)
+            if tools:
+                # tool_prompt = tool_formater(tools)
+                tool_prompt = json.dumps(tools)
+                tool_text = self.tool_format.format(content=tool_prompt)
+                tool_tokens = self.tokenizer.encode(tool_text, add_special_tokens=False)
+                input_ids = input_ids + tool_tokens
+                target_mask = target_mask + [0] * len(tool_tokens)
 
         conversations = data["conversations"]
 
@@ -65,7 +67,8 @@ class UnifiedSFTDataset(Dataset):
                     input_buffer += human
 
                 elif role == "function_call":
-                    tool_calls = function_formatter(json.loads(content))
+                    # tool_calls = function_formatter(json.loads(content))
+                    tool_calls = content
                     function = self.function_format.format(content=tool_calls)
                     input_buffer += function
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict
-from constant import MODEL_TEMPLATE_MAP
+from .constant import MODEL_TEMPLATE_MAP
 
 
 @dataclass
@@ -79,7 +79,7 @@ register_template(
         "You are provided with function signatures within <tools></tools> XML tags:\n"
         "<tools>\n{content}\n</tools>\n\n"
         "For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n"
-        '<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>'
+        '<tool_call>\n{{"name": <function-name>, "arguments": <args-json-object>}}\n</tool_call>'
     ),
     function_format="<tool_call>\n{content}\n</tool_call><|im_end|>\n",
     observation_format="<|im_start|>user\n<tool_response>\n{content}\n</tool_response><|im_end|>\n<|im_start|>assistant\n",
