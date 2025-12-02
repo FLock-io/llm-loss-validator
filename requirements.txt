@@ -13,6 +13,6 @@ einops
 transformers_stream_generator
 tenacity
 python-dotenv
-peft>=0.10.0
+peft>=0.10.0,<0.18.0
 gitpython
 pre-commit
