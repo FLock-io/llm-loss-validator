@@ -452,8 +452,8 @@ class TestCalculateBytesAndTokens(unittest.TestCase):
         eval_dataset_mask_shorter = [item_mask_shorter]
         eval_dataset_ids_shorter = [item_ids_shorter]
 
-        self.mock_tokenizer.decode.side_effect = (
-            lambda ids, skip_special_tokens: "a" * len(ids)
+        self.mock_tokenizer.decode.side_effect = lambda ids, skip_special_tokens: (
+            "a" * len(ids)
         )
 
         # Scenario 1: target_mask is shorter
@@ -468,8 +468,8 @@ class TestCalculateBytesAndTokens(unittest.TestCase):
         self.mock_tokenizer.decode.assert_called_with([2, 3], skip_special_tokens=True)
 
         self.mock_tokenizer.reset_mock()  # Reset mock for the next scenario
-        self.mock_tokenizer.decode.side_effect = (
-            lambda ids, skip_special_tokens: "b" * len(ids)
+        self.mock_tokenizer.decode.side_effect = lambda ids, skip_special_tokens: (
+            "b" * len(ids)
         )
 
         # Scenario 2: input_ids is shorter
